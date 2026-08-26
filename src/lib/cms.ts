@@ -17,6 +17,17 @@ export async function getPublishedPage(slug: string): Promise<CmsPage | null> {
   return data as CmsPage | null;
 }
 
+export async function getPublicCollection<T>(table: "faqs" | "testimonials" | "gallery_items" | "navigation_items") : Promise<T[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return [];
+  const supabase = createSupabaseClient(url, key, { auth: { persistSession: false } });
+  let query = supabase.from(table).select("*").eq("status", "published").order("sort_order");
+  if (table === "navigation_items") query = query.eq("is_visible", true);
+  const { data, error } = await query;
+  if (error) throw new Error(`Unable to load ${table}: ${error.message}`);
+  return (data || []) as T[];
+}
+
 export function pageMetadata(page: CmsPage | null) {
   if (!page) return {};
   const robots = page.robots.toLowerCase();
