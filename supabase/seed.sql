@@ -1,0 +1,2 @@
+-- Seed data is intentionally minimal in Phase 1. Business content, prices, and rules
+-- will be introduced through CMS/configuration migrations rather than hardcoded UI.

@@ -1,0 +1,6 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { getPublishedPage, pageMetadata } from "@/lib/cms";
+export async function generateMetadata(): Promise<Metadata> { return pageMetadata(await getPublishedPage("about")); }
+export default async function AboutPage() { const page = await getPublishedPage("about"); if (!page) return <SetupState/>; const body = typeof page.content.body === "string" ? page.content.body : ""; return <main className="min-h-screen bg-paper"><nav className="mx-auto flex max-w-6xl justify-between px-6 py-7"><Link href="/" className="font-display text-xl tracking-[.18em]">STUDIO TWO</Link><Link href="/book" className="text-sm">Book the studio</Link></nav><article className="mx-auto max-w-6xl px-6 py-24"><p className="text-xs uppercase tracking-[.28em] text-gold">{page.subtitle}</p><h1 className="mt-5 max-w-4xl font-display text-6xl leading-none sm:text-8xl">{page.title}</h1><p className="mt-12 max-w-2xl text-xl leading-8 text-black/65">{page.description}</p>{body && <p className="mt-8 max-w-2xl whitespace-pre-line leading-8 text-black/60">{body}</p>}</article></main>; }
+function SetupState() { return <main className="flex min-h-screen items-center justify-center bg-ink px-6 text-paper"><p>Connect Supabase and apply migrations to load published content.</p></main>; }
