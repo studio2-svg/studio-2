@@ -6,5 +6,18 @@ schemas = ["public", "graphql_public"]
 major_version = 17
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+site_url = "https://studio-2-psi.vercel.app"
+additional_redirect_urls = ["http://localhost:3000/**", "https://studio-2-psi.vercel.app/**", "https://*-studio-2.vercel.app/**"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+double_confirm_changes = true
+secure_password_change = false
+max_frequency = "1m"
+otp_length = 8
+otp_expiry = 3600
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
