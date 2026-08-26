@@ -28,6 +28,15 @@ export async function getPublicCollection<T>(table: "faqs" | "testimonials" | "g
   return (data || []) as T[];
 }
 
+export async function getPublicEquipment<T>(): Promise<T[]> {
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if(!url||!key)return[];
+  const supabase=createSupabaseClient(url,key,{auth:{persistSession:false}});
+  const{data,error}=await supabase.from('equipment').select('*,equipment_categories(name)').eq('status','available').order('featured',{ascending:false}).order('name');
+  if(error)throw new Error(`Unable to load equipment: ${error.message}`);
+  return(data||[])as T[];
+}
+
 export function pageMetadata(page: CmsPage | null) {
   if (!page) return {};
   const robots = page.robots.toLowerCase();
