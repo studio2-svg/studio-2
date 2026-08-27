@@ -165,7 +165,8 @@ async function createBookingCheckout(form: FormData) {
     if (staffError) throw new Error(staffError.message);
   }
   const reference = `booking-${booking.id}`;
-  const { error: paymentError } = await supabase
+  const paymentAdmin = createAdminClient();
+  const { error: paymentError } = await paymentAdmin
     .from("payments")
     .insert({
       customer_id: user.id,

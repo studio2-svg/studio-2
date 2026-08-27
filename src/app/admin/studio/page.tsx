@@ -13,9 +13,11 @@ import {
   addPricingRule,
   addStudioImages,
   deleteStudioImage,
+  deleteProductionType,
   saveBookingRules,
   saveHours,
   updateBlockedPeriod,
+  saveProductionType,
 } from "./actions";
 const days = [
   "Sunday",
@@ -67,6 +69,7 @@ async function Configuration({
     { data: prices },
     { data: rules },
     { data: images },
+    { data: purposes },
   ] = await Promise.all([
     supabase
       .from("opening_hours")
@@ -93,6 +96,7 @@ async function Configuration({
       .select("*")
       .eq("studio_id", studio.id)
       .order("sort_order"),
+    supabase.from("booking_purposes").select("*").order("sort_order"),
   ]);
   return (
     <div className="mt-8 grid gap-8">
@@ -102,6 +106,14 @@ async function Configuration({
         </p>
         <h2 className="mt-1 font-display text-3xl">{studio.name}</h2>
       </div>
+      <section className="bg-paper p-6">
+        <h2 className="font-display text-2xl">Production types</h2>
+        <p className="mt-2 text-sm text-black/50">Active production types appear in the client booking dropdown.</p>
+        <ActionForm action={saveProductionType} successMessage="Production type added." className="mt-5 grid gap-4 sm:grid-cols-2">
+          <input type="hidden" name="id" value=""/><TextField name="name" label="Production type" required/><TextField name="slug" label="Slug (optional)"/><div className="sm:col-span-2"><TextArea name="description" label="Description"/></div><TextField name="sort_order" label="Sort order" type="number" value={0}/><label className="pt-8 text-sm"><input type="checkbox" name="active" defaultChecked className="mr-2"/>Active</label><div className="sm:col-span-2"><SaveButton label="Add production type"/></div>
+        </ActionForm>
+        <div className="mt-6 overflow-x-auto"><table className="w-full min-w-[38rem] text-left text-sm"><thead><tr className="border-b border-black/10 text-black/45"><th className="p-3">Type</th><th className="p-3">Status</th><th className="p-3">Order</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>{purposes?.map((purpose:any)=><tr key={purpose.id} className="border-b border-black/10 hover:bg-white"><td className="p-3 font-medium">{purpose.name}</td><td className="p-3">{purpose.active?"Active":"Hidden"}</td><td className="p-3">{purpose.sort_order}</td><td className="p-3"><div className="flex justify-end gap-2"><details className="relative"><summary className="cursor-pointer list-none border border-black/15 px-3 py-2 hover:bg-gold">Edit</summary><div className="absolute right-0 z-20 mt-2 w-[32rem] max-w-[80vw] bg-paper p-5 shadow-2xl"><ActionForm action={saveProductionType} successMessage="Production type updated." className="grid gap-3"><input type="hidden" name="id" value={purpose.id}/><TextField name="name" label="Production type" value={purpose.name} required/><TextField name="slug" label="Slug (optional)" value={purpose.slug}/><TextArea name="description" label="Description" value={purpose.description}/><TextField name="sort_order" label="Sort order" type="number" value={purpose.sort_order}/><label className="text-sm"><input type="checkbox" name="active" defaultChecked={purpose.active} className="mr-2"/>Active</label><SaveButton label="Save changes"/></ActionForm></div></details><ActionForm action={deleteProductionType} successMessage="Production type deleted." className="inline"><input type="hidden" name="id" value={purpose.id}/><button className="border border-red-700 px-3 py-2 text-red-700 hover:bg-red-700 hover:text-white">Delete</button></ActionForm></div></td></tr>)}</tbody></table></div>
+      </section>
       <section className="bg-paper p-6">
         <h2 className="font-display text-2xl">
           Studio gallery · {studio.name}

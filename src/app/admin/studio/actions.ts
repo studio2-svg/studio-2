@@ -9,6 +9,7 @@ function refresh() {
   revalidatePath("/admin/studio");
   revalidatePath("/studio");
   revalidatePath("/pricing");
+  revalidatePath("/book");
 }
 async function permitted() {
   const session = await requireAdmin();
@@ -186,6 +187,19 @@ export async function updateBlockedPeriod(form: FormData) {
   if (error) throw new Error(error.message);
   refresh();
 }
+export async function saveProductionType(form: FormData) {
+  const v = z.object({ id:z.union([z.literal(""),id]), name:text(120).min(1), slug:text(140), description:text(1000), sort_order:z.coerce.number().int(), active:z.string().optional() }).parse(Object.fromEntries(form));
+  const { supabase } = await permitted();
+  const base=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(!base)throw new Error("Enter a valid production type name.");
+  let slug=base,suffix=2;
+  while(true){let query=supabase.from("booking_purposes").select("id").eq("slug",slug).limit(1);if(v.id)query=query.neq("id",v.id);const{data}=await query;if(!data?.length)break;slug=`${base}-${suffix++}`}
+  const values={name:v.name,slug,description:v.description||null,sort_order:v.sort_order,active:v.active==="on"};
+  const{error}=v.id?await supabase.from("booking_purposes").update(values).eq("id",v.id):await supabase.from("booking_purposes").insert(values);
+  if(error)throw new Error(error.message);
+  refresh();
+}
+export async function deleteProductionType(form:FormData){const target=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("booking_purposes").delete().eq("id",target);if(error)throw new Error(error.message);refresh()}
 export async function addPricingRule(form: FormData) {
   const v = z
     .object({

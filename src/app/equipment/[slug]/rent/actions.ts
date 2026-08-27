@@ -84,7 +84,7 @@ async function createRentalCheckout(form: FormData) {
   if (error || !rental)
     throw new Error(error?.message || "Rental could not be created.");
   const reference = `rental-${rental.id}`;
-  const { error: paymentError } = await supabase
+  const { error: paymentError } = await admin
     .from("payments")
     .insert({
       customer_id: user.id,
