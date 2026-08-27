@@ -9,8 +9,16 @@ export async function createRental(form: FormData) {
     return await createRentalCheckout(form);
   } catch (error) {
     if (!process.env.PAYSTACK_SECRET_KEY)
-      return { error: "Online payment is not configured yet. Add the Paystack secret key in Vercel before checking out." };
-    return { error: error instanceof Error ? error.message : "Checkout could not be started. Please try again." };
+      return {
+        error:
+          "Online payment is not configured yet. Add the Paystack secret key in Vercel before checking out.",
+      };
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Checkout could not be started. Please try again.",
+    };
   }
 }
 
@@ -55,12 +63,6 @@ async function createRentalCheckout(form: FormData) {
     throw new Error(
       "Ghana Card must be JPG, PNG, or WebP and no larger than 8 MB.",
     );
-  const admin = createAdminClient(),
-    path = `${user.id}/${crypto.randomUUID()}.${card.type.split("/")[1]}`;
-  const { error: uploadError } = await admin.storage
-    .from("identity-documents")
-    .upload(path, await card.arrayBuffer(), { contentType: card.type });
-  if (uploadError) throw new Error("Ghana Card upload failed.");
   const units =
       equipment.pricing_type === "hourly"
         ? Math.ceil((ends.getTime() - starts.getTime()) / 3600000)
@@ -68,6 +70,30 @@ async function createRentalCheckout(form: FormData) {
           ? Math.ceil((ends.getTime() - starts.getTime()) / 86400000)
           : 1,
     total = equipment.price_minor * units * input.quantity;
+  if (form.get("confirm_checkout") !== "yes") {
+    return {
+      review: {
+        title: "Equipment rental",
+        reference: `${input.quantity} × ${equipment.name}`,
+        period: `${starts.toLocaleString("en-GH")} – ${ends.toLocaleString("en-GH")}`,
+        currency: "GHS",
+        items: [
+          {
+            label: equipment.name,
+            detail: `${input.quantity} item${input.quantity === 1 ? "" : "s"} · ${units} ${equipment.pricing_type} unit${units === 1 ? "" : "s"}`,
+            amountMinor: total,
+          },
+        ],
+        totalMinor: total,
+      },
+    } as const;
+  }
+  const admin = createAdminClient(),
+    path = `${user.id}/${crypto.randomUUID()}.${card.type.split("/")[1]}`;
+  const { error: uploadError } = await admin.storage
+    .from("identity-documents")
+    .upload(path, await card.arrayBuffer(), { contentType: card.type });
+  if (uploadError) throw new Error("Ghana Card upload failed.");
   const { data: rental, error } = await supabase
     .from("equipment_rentals")
     .insert({
@@ -84,15 +110,13 @@ async function createRentalCheckout(form: FormData) {
   if (error || !rental)
     throw new Error(error?.message || "Rental could not be created.");
   const reference = `rental-${rental.id}`;
-  const { error: paymentError } = await admin
-    .from("payments")
-    .insert({
-      customer_id: user.id,
-      entity_type: "equipment_rental",
-      entity_id: rental.id,
-      reference,
-      amount_minor: total,
-    });
+  const { error: paymentError } = await admin.from("payments").insert({
+    customer_id: user.id,
+    entity_type: "equipment_rental",
+    entity_id: rental.id,
+    reference,
+    amount_minor: total,
+  });
   if (paymentError) throw new Error(paymentError.message);
   const origin =
     (await headers()).get("origin") ||

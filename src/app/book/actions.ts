@@ -34,33 +34,50 @@ async function createBookingCheckout(form: FormData) {
   if (starts <= new Date())
     throw new Error("Bookings must start in the future.");
   const { supabase, user } = await requireUser();
-  const [{ data: conflicts }, { data: blocks }, { data: price }] =
-    await Promise.all([
-      supabase
-        .from("bookings")
-        .select("id")
-        .eq("studio_id", input.studio_id)
-        .in("status", ["pending", "confirmed"])
-        .lt("starts_at", ends.toISOString())
-        .gt("ends_at", starts.toISOString())
-        .limit(1),
-      supabase
-        .from("blocked_periods")
-        .select("id")
-        .eq("studio_id", input.studio_id)
-        .lt("starts_at", ends.toISOString())
-        .gt("ends_at", starts.toISOString())
-        .limit(1),
-      supabase
-        .from("pricing_rules")
-        .select("amount_minor")
-        .eq("studio_id", input.studio_id)
-        .eq("active", true)
-        .eq("rule_type", "hourly")
-        .order("priority")
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: conflicts },
+    { data: blocks },
+    { data: price },
+    { data: studio },
+    { data: purpose },
+  ] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id")
+      .eq("studio_id", input.studio_id)
+      .in("status", ["pending", "confirmed"])
+      .lt("starts_at", ends.toISOString())
+      .gt("ends_at", starts.toISOString())
+      .limit(1),
+    supabase
+      .from("blocked_periods")
+      .select("id")
+      .eq("studio_id", input.studio_id)
+      .lt("starts_at", ends.toISOString())
+      .gt("ends_at", starts.toISOString())
+      .limit(1),
+    supabase
+      .from("pricing_rules")
+      .select("amount_minor")
+      .eq("studio_id", input.studio_id)
+      .eq("active", true)
+      .eq("rule_type", "hourly")
+      .order("priority")
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("studios")
+      .select("name,currency")
+      .eq("id", input.studio_id)
+      .single(),
+    input.purpose_id
+      ? supabase
+          .from("booking_purposes")
+          .select("name")
+          .eq("id", input.purpose_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
   if (conflicts?.length || blocks?.length)
     throw new Error(
       "That studio is unavailable during the selected time. Please choose another time.",
@@ -71,7 +88,7 @@ async function createBookingCheckout(form: FormData) {
   const { data: selectedEquipment } = equipmentIds.length
     ? await supabase
         .from("equipment")
-        .select("id,price_minor,pricing_type")
+        .select("id,name,price_minor,pricing_type")
         .in("id", equipmentIds)
     : { data: [] };
   const { data: selectedStaff } = staffIds.length
@@ -120,6 +137,45 @@ async function createBookingCheckout(form: FormData) {
   const total = studioTotal + equipmentTotal + staffTotal;
   if (total <= 0)
     throw new Error("Pricing has not been configured for this checkout.");
+  if (form.get("confirm_checkout") !== "yes") {
+    const items = [
+      {
+        label: studio?.name || "Studio session",
+        detail: `${hours.toFixed(1)} hours`,
+        amountMinor: studioTotal,
+      },
+      ...(selectedEquipment || []).map((item) => ({
+        label: item.name,
+        detail: `Equipment · ${item.pricing_type}`,
+        amountMinor:
+          item.price_minor *
+          (item.pricing_type === "hourly" ? Math.ceil(hours) : 1),
+      })),
+      ...(selectedStaff || []).map((person) => {
+        const units =
+          person.pricing_type === "hourly"
+            ? Math.ceil(hours)
+            : person.pricing_type === "daily"
+              ? days
+              : 1;
+        return {
+          label: person.name,
+          detail: `Production team · ${person.pricing_type}`,
+          amountMinor: person.base_price_minor * units,
+        };
+      }),
+    ];
+    return {
+      review: {
+        title: "Studio booking",
+        reference: purpose?.name || "General production",
+        period: `${starts.toLocaleString("en-GH")} – ${ends.toLocaleString("en-GH")}`,
+        currency: studio?.currency || "GHS",
+        items,
+        totalMinor: total,
+      },
+    } as const;
+  }
   const { data: booking, error } = await supabase
     .from("bookings")
     .insert({
@@ -166,15 +222,13 @@ async function createBookingCheckout(form: FormData) {
   }
   const reference = `booking-${booking.id}`;
   const paymentAdmin = createAdminClient();
-  const { error: paymentError } = await paymentAdmin
-    .from("payments")
-    .insert({
-      customer_id: user.id,
-      entity_type: "booking",
-      entity_id: booking.id,
-      reference,
-      amount_minor: total,
-    });
+  const { error: paymentError } = await paymentAdmin.from("payments").insert({
+    customer_id: user.id,
+    entity_type: "booking",
+    entity_id: booking.id,
+    reference,
+    amount_minor: total,
+  });
   if (paymentError) throw new Error(paymentError.message);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
