@@ -10,8 +10,8 @@ import {
   addPurpose,
   saveRecommendation,
   saveStaffCategory,
-  saveStaffMember,
 } from "./actions";
+import { StaffManager } from "@/components/staff-manager";
 export default async function StaffAdmin() {
   const { supabase } = await requireAdmin();
   const [
@@ -21,7 +21,7 @@ export default async function StaffAdmin() {
     { data: rules },
   ] = await Promise.all([
     supabase.from("staff_categories").select("*").order("sort_order"),
-    supabase.from("staff_members").select("*").order("name"),
+    supabase.from("staff_members").select("*,staff_categories(name)").order("name"),
     supabase.from("booking_purposes").select("*").order("sort_order"),
     supabase
       .from("production_requirement_rules")
@@ -74,16 +74,7 @@ export default async function StaffAdmin() {
             <SaveButton />
           </ActionForm>
         </div>
-        <StaffForm categories={categories || []} />
-        <div className="space-y-4">
-          {members?.map((member) => (
-            <StaffForm
-              key={member.id}
-              member={member}
-              categories={categories || []}
-            />
-          ))}
-        </div>
+        <StaffManager members={members || []} categories={categories || []} />
         <section className="bg-paper p-6">
           <h2 className="font-display text-2xl">Production recommendations</h2>
           <ActionForm
@@ -139,120 +130,6 @@ export default async function StaffAdmin() {
         </section>
       </div>
     </>
-  );
-}
-type Category = { id: string; name: string };
-type Member = {
-  id: string;
-  category_id: string | null;
-  name: string;
-  slug: string;
-  profile_photo_url: string | null;
-  bio: string | null;
-  role_title: string | null;
-  email: string | null;
-  phone: string | null;
-  base_price_minor: number;
-  pricing_type: string;
-  status: string;
-  featured: boolean;
-};
-function StaffForm({
-  categories,
-  member,
-}: {
-  categories: Category[];
-  member?: Member;
-}) {
-  return (
-    <ActionForm action={saveStaffMember} successMessage={member?"Staff member saved.":"Staff member added."} className="grid gap-4 bg-paper p-6">
-      <h2 className="font-display text-2xl">
-        {member ? member.name : "Add staff member"}
-      </h2>
-      <input type="hidden" name="id" value={member?.id || ""} />
-      <div className="grid gap-4 sm:grid-cols-3">
-        <TextField name="name" label="Name" value={member?.name} required />
-        <TextField
-          name="slug"
-          label="Slug (optional)"
-          value={member?.slug}
-        />
-        <Select
-          name="category_id"
-          label="Category"
-          value={member?.category_id || ""}
-          options={categories.map((x) => [x.id, x.name])}
-        />
-      </div>
-      <TextField
-        name="role_title"
-        label="Role title"
-        value={member?.role_title}
-      />
-      <input
-        type="hidden"
-        name="current_profile_photo_url"
-        value={member?.profile_photo_url || ""}
-      />
-      <label className="text-sm">
-        <span className="mb-2 block">Profile photo</span>
-        <input
-          name="profile_photo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          className="w-full border border-black/15 bg-white p-3"
-        />
-        <span className="mt-2 block text-xs text-black/55">
-          JPG, PNG, WebP, or GIF. Maximum 8 MB.
-        </span>
-      </label>
-      <TextArea name="bio" label="Bio" value={member?.bio} />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField
-          name="email"
-          label="Email"
-          type="email"
-          value={member?.email}
-        />
-        <TextField name="phone" label="Phone" value={member?.phone} />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <TextField
-          name="base_price"
-          label="Base price (GHS)"
-          type="number"
-          value={member ? member.base_price_minor / 100 : 0}
-        />
-        <Select
-          name="pricing_type"
-          label="Pricing"
-          value={member?.pricing_type || "per_booking"}
-          options={["hourly", "daily", "fixed", "per_booking"].map((x) => [
-            x,
-            x,
-          ])}
-        />
-        <Select
-          name="status"
-          label="Status"
-          value={member?.status || "active"}
-          options={["active", "unavailable", "leave", "archived"].map((x) => [
-            x,
-            x,
-          ])}
-        />
-      </div>
-      <label className="text-sm">
-        <input
-          type="checkbox"
-          name="featured"
-          defaultChecked={member?.featured}
-          className="mr-2"
-        />
-        Featured
-      </label>
-      <SaveButton label={member ? "Save" : "Add staff member"} />
-    </ActionForm>
   );
 }
 function Select({

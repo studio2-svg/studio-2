@@ -32,6 +32,7 @@ type Staff = {
   name: string;
   role_title: string | null;
   profile_photo_url: string | null;
+  featured: boolean;
   staff_categories: { name: string } | null;
 };
 type Gallery = {
@@ -178,7 +179,7 @@ export default async function Home() {
             dark
           />
           <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {team.slice(0, 3).map((person) => (
+            {team.filter((person) => person.featured).slice(0, 3).map((person) => (
               <article key={person.id}>
                 {person.profile_photo_url ? (
                   <div className="aspect-[4/5] overflow-hidden bg-white/5">

@@ -4,6 +4,7 @@ import {headers} from "next/headers";
 import {redirect} from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {initializePaystack,paystackSecret} from "@/lib/paystack";
 const schema = z.object({
   studio_id: z.uuid(),
@@ -59,10 +60,30 @@ export async function createBooking(form: FormData) {
     );
   const hours = (ends.getTime() - starts.getTime()) / 3600000;
   const equipmentIds=z.array(z.uuid()).parse(form.getAll("equipment_ids"));
+  const staffIds=z.array(z.uuid()).parse(form.getAll("staff_ids"));
   const{data:selectedEquipment}=equipmentIds.length?await supabase.from("equipment").select("id,price_minor,pricing_type").in("id",equipmentIds):{data:[]};
+  const { data: selectedStaff } = staffIds.length
+    ? await supabase.from("staff_members").select("id,name,base_price_minor,pricing_type").in("id", staffIds).eq("status", "active")
+    : { data: [] };
+  if ((selectedStaff?.length || 0) !== staffIds.length)
+    throw new Error("One or more selected team members are no longer available.");
+  for (const staffId of staffIds) {
+    const { data: available, error: availabilityError } = await supabase.rpc("staff_is_available", {
+      target_staff: staffId,
+      target_start: starts.toISOString(),
+      target_end: ends.toISOString(),
+    });
+    if (availabilityError || !available)
+      throw new Error("A selected team member is unavailable at that time. Please choose another person or time.");
+  }
   const studioTotal=Math.round(hours*(price?.amount_minor||0));
   const equipmentTotal=(selectedEquipment||[]).reduce((sum,item)=>sum+item.price_minor*(item.pricing_type==="hourly"?Math.ceil(hours):1),0);
-  const total=studioTotal+equipmentTotal;if(total<=0)throw new Error("Pricing has not been configured for this checkout.");
+  const days = Math.max(1, Math.ceil(hours / 24));
+  const staffTotal = (selectedStaff || []).reduce((sum, person) => {
+    const units = person.pricing_type === "hourly" ? Math.ceil(hours) : person.pricing_type === "daily" ? days : 1;
+    return sum + person.base_price_minor * units;
+  }, 0);
+  const total=studioTotal+equipmentTotal+staffTotal;if(total<=0)throw new Error("Pricing has not been configured for this checkout.");
   const { data:booking,error } = await supabase
     .from("bookings")
     .insert({
@@ -76,6 +97,18 @@ export async function createBooking(form: FormData) {
     }).select("id").single();
   if (error||!booking) throw new Error(error?.message||"Booking could not be created.");
   if(selectedEquipment?.length){const{error:equipmentError}=await supabase.from("booking_equipment").insert(selectedEquipment.map(item=>({booking_id:booking.id,equipment_id:item.id,quantity:1,amount_minor:item.price_minor*(item.pricing_type==="hourly"?Math.ceil(hours):1)})));if(equipmentError)throw new Error(equipmentError.message)}
+  if (selectedStaff?.length) {
+    const admin = createAdminClient();
+    const { error: staffError } = await admin.from("staff_assignments").insert(selectedStaff.map(person => ({
+      staff_id: person.id,
+      booking_reference: booking.id,
+      starts_at: starts.toISOString(),
+      ends_at: ends.toISOString(),
+      status: "held",
+      expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    })));
+    if (staffError) throw new Error(staffError.message);
+  }
   const reference=`booking-${booking.id}`;await supabase.from("payments").insert({customer_id:user.id,entity_type:"booking",entity_id:booking.id,reference,amount_minor:total});
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");

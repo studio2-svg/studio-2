@@ -8,6 +8,7 @@ const text = (n = 500) => z.string().trim().max(n),
 function refresh() {
   revalidatePath("/admin/staff");
   revalidatePath("/team");
+  revalidatePath("/");
 }
 export async function saveStaffCategory(form: FormData) {
   const v = z
@@ -104,6 +105,14 @@ export async function saveStaffMember(form: FormData) {
   const { error } = v.id
     ? await supabase.from("staff_members").update(values).eq("id", v.id)
     : await supabase.from("staff_members").insert(values);
+  if (error) throw new Error(error.message);
+  refresh();
+}
+
+export async function deleteStaffMember(form: FormData) {
+  const id = z.uuid().parse(form.get("id"));
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.from("staff_members").delete().eq("id", id);
   if (error) throw new Error(error.message);
   refresh();
 }

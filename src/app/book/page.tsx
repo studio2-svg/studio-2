@@ -12,7 +12,7 @@ import { createBooking } from "./actions";
 export default async function BookPage() {
   await connection();
   const { supabase } = await requireUser();
-  const [{ data: studios }, { data: purposes }, { data: equipment },{data:studioImages}] =
+  const [{ data: studios }, { data: purposes }, { data: equipment }, { data: studioImages }, { data: staff }] =
     await Promise.all([
       supabase
         .from("studios")
@@ -30,6 +30,12 @@ export default async function BookPage() {
         .eq("status", "available")
         .order("name"),
       supabase.from("studio_images").select("id,studio_id,image_url,alt_text").order("sort_order"),
+      supabase
+        .from("staff_members")
+        .select("id,name,role_title,profile_photo_url,base_price_minor,pricing_type,staff_categories(name)")
+        .eq("status", "active")
+        .order("featured", { ascending: false })
+        .order("name"),
     ]);
   return (
     <main className="min-h-screen bg-[#ebe7de] px-4 py-10 sm:px-6">
@@ -148,6 +154,20 @@ export default async function BookPage() {
                   </span>
                 </label>
               ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend className="mb-2 font-display text-2xl">Choose your production team</legend>
+            <p className="mb-4 text-sm text-black/50">Optional team members are checked for availability before checkout.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {staff?.map((person) => (
+                <label key={person.id} className="flex cursor-pointer gap-3 border border-black/10 bg-white p-4 transition hover:border-gold hover:shadow-sm">
+                  <input type="checkbox" name="staff_ids" value={person.id} className="mt-1" />
+                  {person.profile_photo_url && <img src={person.profile_photo_url} alt={person.name} className="size-14 rounded-full object-cover" />}
+                  <span><strong className="block">{person.name}</strong><small className="block text-black/50">{person.staff_categories?.[0]?.name || person.role_title || "Production team"}</small><small className="mt-1 block text-black/50">GHS {(person.base_price_minor / 100).toFixed(2)} · {person.pricing_type}</small></span>
+                </label>
+              ))}
+              {!staff?.length && <p className="text-sm text-black/50">No team members are currently available.</p>}
             </div>
           </fieldset>
           <SaveButton label="Proceed to secure checkout" />
