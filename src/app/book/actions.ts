@@ -37,7 +37,6 @@ async function createBookingCheckout(form: FormData) {
   const [
     { data: conflicts },
     { data: blocks },
-    { data: price },
     { data: studio },
     { data: purpose },
   ] = await Promise.all([
@@ -57,17 +56,8 @@ async function createBookingCheckout(form: FormData) {
       .gt("ends_at", starts.toISOString())
       .limit(1),
     supabase
-      .from("pricing_rules")
-      .select("amount_minor")
-      .eq("studio_id", input.studio_id)
-      .eq("active", true)
-      .eq("rule_type", "hourly")
-      .order("priority")
-      .limit(1)
-      .maybeSingle(),
-    supabase
       .from("studios")
-      .select("name,currency")
+      .select("name,currency,price_minor")
       .eq("id", input.studio_id)
       .single(),
     input.purpose_id
@@ -116,7 +106,7 @@ async function createBookingCheckout(form: FormData) {
         "A selected team member is unavailable at that time. Please choose another person or time.",
       );
   }
-  const studioTotal = Math.round(hours * (price?.amount_minor || 0));
+  const studioTotal = Math.round(hours * (studio?.price_minor || 0));
   const equipmentTotal = (selectedEquipment || []).reduce(
     (sum, item) =>
       sum +

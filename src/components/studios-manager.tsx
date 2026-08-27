@@ -21,8 +21,9 @@ type Studio = {
   address: string | null;
   timezone: string;
   currency: string;
+  price_minor: number;
   cover_image_url: string | null;
-  featured:boolean;
+  featured: boolean;
   active: boolean;
 };
 export function StudiosManager({
@@ -49,6 +50,7 @@ export function StudiosManager({
             <tr>
               <th className="p-4">Studio</th>
               <th className="p-4">Currency</th>
+              <th className="p-4">Hourly price</th>
               <th className="p-4">Timezone</th>
               <th className="p-4">Status</th>
               <th className="p-4 text-right">Actions</th>
@@ -62,6 +64,9 @@ export function StudiosManager({
               >
                 <td className="p-4 font-medium">{item.name}</td>
                 <td className="p-4">{item.currency}</td>
+                <td className="p-4">
+                  {item.currency} {(item.price_minor / 100).toFixed(2)}
+                </td>
                 <td className="p-4">{item.timezone}</td>
                 <td className="p-4">{item.active ? "Active" : "Inactive"}</td>
                 <td className="p-4">
@@ -135,6 +140,13 @@ function StudioForm({ studio }: { studio?: Studio }) {
         <TextField name="slug" label="Slug (optional)" />
         <TextField name="currency" label="Currency" value="GHS" required />
         <TextField
+          name="price"
+          label="Hourly price"
+          type="number"
+          value={0}
+          required
+        />
+        <TextField
           name="timezone"
           label="Timezone"
           value="Africa/Accra"
@@ -152,7 +164,11 @@ function StudioForm({ studio }: { studio?: Studio }) {
       className="grid gap-4"
     >
       <input type="hidden" name="id" value={studio.id} />
-      <input type="hidden" name="current_cover_image_url" value={studio.cover_image_url||""} />
+      <input
+        type="hidden"
+        name="current_cover_image_url"
+        value={studio.cover_image_url || ""}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField name="name" label="Name" value={studio.name} required />
         <TextField name="slug" label="Slug (optional)" value={studio.slug} />
@@ -162,14 +178,34 @@ function StudioForm({ studio }: { studio?: Studio }) {
         label="Description"
         value={studio.description}
       />
-      <label className="text-sm"><span className="mb-2 block">Studio cover image</span><input name="cover_image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="w-full border border-black/15 bg-white p-3" /></label>
+      <label className="text-sm">
+        <span className="mb-2 block">Studio cover image</span>
+        <input
+          name="cover_image"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="w-full border border-black/15 bg-white p-3"
+        />
+      </label>
       <TextArea name="address" label="Address" value={studio.address} />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField name="timezone" label="Timezone" value={studio.timezone} />
         <TextField name="currency" label="Currency" value={studio.currency} />
+        <TextField
+          name="price"
+          label="Hourly price"
+          type="number"
+          value={studio.price_minor / 100}
+        />
       </div>
       <label className="text-sm">
-        <input type="checkbox" name="featured" defaultChecked={studio.featured} className="mr-2"/>Featured on homepage
+        <input
+          type="checkbox"
+          name="featured"
+          defaultChecked={studio.featured}
+          className="mr-2"
+        />
+        Featured on homepage
       </label>
       <label className="text-sm">
         <input

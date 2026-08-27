@@ -1,0 +1,1 @@
+"use client";import{Printer}from"lucide-react";export function InvoicePrintButton(){return <button type="button" onClick={()=>window.print()} className="inline-flex items-center gap-2 bg-ink px-5 py-3 text-sm text-paper print:hidden"><Printer size={16}/>Download / print invoice</button>}

@@ -27,6 +27,7 @@ export async function addStudio(form: FormData) {
       slug: text(160),
       currency: z.string().length(3),
       timezone: text(80).min(1),
+      price: z.coerce.number().min(0),
     })
     .parse(Object.fromEntries(form));
   const { supabase } = await permitted();
@@ -38,6 +39,7 @@ export async function addStudio(form: FormData) {
       slug,
       currency: v.currency.toUpperCase(),
       timezone: v.timezone,
+      price_minor: Math.round(v.price * 100),
       active: true,
     })
     .select("id")
@@ -56,6 +58,7 @@ export async function saveStudio(form: FormData) {
       address: text(500),
       timezone: text(80).min(1),
       currency: z.string().length(3),
+      price: z.coerce.number().min(0),
       current_cover_image_url: z.string(),
       featured: z.string().optional(),
       active: z.string().optional(),
@@ -78,6 +81,7 @@ export async function saveStudio(form: FormData) {
       address: v.address || null,
       timezone: v.timezone,
       currency: v.currency.toUpperCase(),
+      price_minor: Math.round(v.price * 100),
       cover_image_url,
       featured: v.featured === "on",
       active: v.active === "on",
@@ -179,96 +183,89 @@ export async function addBlockedPeriod(form: FormData) {
   refresh();
 }
 export async function updateBlockedPeriod(form: FormData) {
-  const v = z.object({ id, studio_id:id, starts_at:z.string().min(1), ends_at:z.string().min(1), reason:text(300).min(1), internal_notes:text(1000) }).parse(Object.fromEntries(form));
-  const starts = new Date(v.starts_at), ends = new Date(v.ends_at);
-  if (Number.isNaN(starts.valueOf()) || Number.isNaN(ends.valueOf()) || ends <= starts) throw new Error("Choose a valid start and end period.");
-  const { supabase } = await permitted();
-  const { error } = await supabase.from("blocked_periods").update({ starts_at:starts.toISOString(), ends_at:ends.toISOString(), reason:v.reason, internal_notes:v.internal_notes||null }).eq("id",v.id).eq("studio_id",v.studio_id);
-  if (error) throw new Error(error.message);
-  refresh();
-}
-export async function saveProductionType(form: FormData) {
-  const v = z.object({ id:z.union([z.literal(""),id]), name:text(120).min(1), slug:text(140), description:text(1000), sort_order:z.coerce.number().int(), active:z.string().optional() }).parse(Object.fromEntries(form));
-  const { supabase } = await permitted();
-  const base=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-  if(!base)throw new Error("Enter a valid production type name.");
-  let slug=base,suffix=2;
-  while(true){let query=supabase.from("booking_purposes").select("id").eq("slug",slug).limit(1);if(v.id)query=query.neq("id",v.id);const{data}=await query;if(!data?.length)break;slug=`${base}-${suffix++}`}
-  const values={name:v.name,slug,description:v.description||null,sort_order:v.sort_order,active:v.active==="on"};
-  const{error}=v.id?await supabase.from("booking_purposes").update(values).eq("id",v.id):await supabase.from("booking_purposes").insert(values);
-  if(error)throw new Error(error.message);
-  refresh();
-}
-export async function deleteProductionType(form:FormData){const target=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("booking_purposes").delete().eq("id",target);if(error)throw new Error(error.message);refresh()}
-export async function addPricingRule(form: FormData) {
-  const v = z
-    .object({
-      studio_id: id,
-      name: text(160).min(1),
-      rule_type: z.enum([
-        "hourly",
-        "fixed",
-        "tiered",
-        "percentage",
-        "flat_fee",
-      ]),
-      amount: z.coerce.number().min(0),
-      priority: z.coerce.number().int(),
-      active: z.string().optional(),
-    })
-    .parse(Object.fromEntries(form));
-  const { supabase } = await permitted();
-  const { error } = await supabase.from("pricing_rules").insert({
-    studio_id: v.studio_id,
-    name: v.name,
-    rule_type: v.rule_type,
-    amount_minor: Math.round(v.amount * 100),
-    priority: v.priority,
-    active: v.active === "on",
-  });
-  if (error) throw new Error(error.message);
-  refresh();
-}
-export async function updatePricingRule(form: FormData) {
   const v = z
     .object({
       id,
       studio_id: id,
-      name: text(160).min(1),
-      rule_type: z.enum([
-        "hourly",
-        "fixed",
-        "tiered",
-        "percentage",
-        "flat_fee",
-      ]),
-      amount: z.coerce.number().min(0),
-      priority: z.coerce.number().int(),
-      active: z.string().optional(),
+      starts_at: z.string().min(1),
+      ends_at: z.string().min(1),
+      reason: text(300).min(1),
+      internal_notes: text(1000),
     })
     .parse(Object.fromEntries(form));
+  const starts = new Date(v.starts_at),
+    ends = new Date(v.ends_at);
+  if (
+    Number.isNaN(starts.valueOf()) ||
+    Number.isNaN(ends.valueOf()) ||
+    ends <= starts
+  )
+    throw new Error("Choose a valid start and end period.");
   const { supabase } = await permitted();
   const { error } = await supabase
-    .from("pricing_rules")
+    .from("blocked_periods")
     .update({
-      name: v.name,
-      rule_type: v.rule_type,
-      amount_minor: Math.round(v.amount * 100),
-      priority: v.priority,
-      active: v.active === "on",
+      starts_at: starts.toISOString(),
+      ends_at: ends.toISOString(),
+      reason: v.reason,
+      internal_notes: v.internal_notes || null,
     })
     .eq("id", v.id)
     .eq("studio_id", v.studio_id);
   if (error) throw new Error(error.message);
   refresh();
 }
-export async function deletePricingRule(form: FormData) {
-  const ruleId = id.parse(form.get("id"));
+export async function saveProductionType(form: FormData) {
+  const v = z
+    .object({
+      id: z.union([z.literal(""), id]),
+      name: text(120).min(1),
+      slug: text(140),
+      description: text(1000),
+      sort_order: z.coerce.number().int(),
+      active: z.string().optional(),
+    })
+    .parse(Object.fromEntries(form));
+  const { supabase } = await permitted();
+  const base = (v.slug || v.name)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  if (!base) throw new Error("Enter a valid production type name.");
+  let slug = base,
+    suffix = 2;
+  while (true) {
+    let query = supabase
+      .from("booking_purposes")
+      .select("id")
+      .eq("slug", slug)
+      .limit(1);
+    if (v.id) query = query.neq("id", v.id);
+    const { data } = await query;
+    if (!data?.length) break;
+    slug = `${base}-${suffix++}`;
+  }
+  const values = {
+    name: v.name,
+    slug,
+    description: v.description || null,
+    sort_order: v.sort_order,
+    active: v.active === "on",
+  };
+  const { error } = v.id
+    ? await supabase.from("booking_purposes").update(values).eq("id", v.id)
+    : await supabase.from("booking_purposes").insert(values);
+  if (error) throw new Error(error.message);
+  refresh();
+}
+export async function deleteProductionType(form: FormData) {
+  const target = id.parse(form.get("id"));
   const { supabase } = await permitted();
   const { error } = await supabase
-    .from("pricing_rules")
+    .from("booking_purposes")
     .delete()
-    .eq("id", ruleId);
+    .eq("id", target);
   if (error) throw new Error(error.message);
   refresh();
 }

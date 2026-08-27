@@ -1,6 +1,11 @@
 import { requireAdmin } from "@/lib/auth";
 import { PortalHeader } from "@/components/portal-page";
-function related<T>(value:T|T[]|null){return Array.isArray(value)?value[0]:value}
+import { ActionForm } from "@/components/action-form";
+import { SaveButton, TextField } from "@/components/admin-form-fields";
+import { updateBookingOrder } from "@/app/admin/orders-actions";
+function related<T>(value: T | T[] | null) {
+  return Array.isArray(value) ? value[0] : value;
+}
 export default async function Page() {
   const { supabase } = await requireAdmin();
   const { data, error } = await supabase
@@ -10,6 +15,10 @@ export default async function Page() {
     )
     .order("starts_at", { ascending: false });
   if (error) throw new Error(error.message);
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("entity_id,status")
+    .eq("entity_type", "booking");
   return (
     <>
       <PortalHeader
@@ -27,25 +36,27 @@ export default async function Page() {
               <th className="p-4">Purpose</th>
               <th className="p-4">Estimate</th>
               <th className="p-4">Status</th>
+              <th className="p-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {data?.length ? (
-            data.map((item) => (
+              data.map((item) => (
                 <tr
                   key={item.id}
                   className="border-b border-black/10 transition hover:bg-white"
                 >
                   <td className="p-4">
                     <strong>
-                  {related(item.profiles)?.first_name} {related(item.profiles)?.last_name}
+                      {related(item.profiles)?.first_name}{" "}
+                      {related(item.profiles)?.last_name}
                     </strong>
                     <br />
                     <span className="text-black/45">
-                  {related(item.profiles)?.email}
+                      {related(item.profiles)?.email}
                     </span>
                   </td>
-              <td className="p-4">{related(item.studios)?.name}</td>
+                  <td className="p-4">{related(item.studios)?.name}</td>
                   <td className="p-4">
                     {new Date(item.starts_at).toLocaleString()}
                     <br />
@@ -54,13 +65,68 @@ export default async function Page() {
                     </span>
                   </td>
                   <td className="p-4">
-                {related(item.booking_purposes)?.name || "General"}
+                    {related(item.booking_purposes)?.name || "General"}
                   </td>
                   <td className="p-4">
-                {related(item.studios)?.currency}{" "}
+                    {related(item.studios)?.currency}{" "}
                     {(item.estimated_amount_minor / 100).toFixed(2)}
                   </td>
                   <td className="p-4 capitalize">{item.status}</td>
+                  <td className="p-4 text-right">
+                    <details className="relative inline-block text-left">
+                      <summary className="cursor-pointer list-none border border-ink px-3 py-2">
+                        Edit
+                      </summary>
+                      <div className="absolute right-0 z-30 mt-2 w-[32rem] max-w-[80vw] bg-paper p-5 text-left shadow-2xl">
+                        <ActionForm
+                          action={updateBookingOrder}
+                          successMessage="Booking updated."
+                          className="grid gap-3"
+                        >
+                          <input type="hidden" name="id" value={item.id} />
+                          <TextField
+                            name="starts_at"
+                            label="Starts"
+                            type="datetime-local"
+                            value={new Date(item.starts_at)
+                              .toISOString()
+                              .slice(0, 16)}
+                            required
+                          />
+                          <TextField
+                            name="ends_at"
+                            label="Ends"
+                            type="datetime-local"
+                            value={new Date(item.ends_at)
+                              .toISOString()
+                              .slice(0, 16)}
+                            required
+                          />
+                          <Select
+                            name="status"
+                            label="Booking status"
+                            value={item.status}
+                            options={[
+                              "pending",
+                              "confirmed",
+                              "cancelled",
+                              "completed",
+                            ]}
+                          />
+                          <Select
+                            name="payment_status"
+                            label="Payment status"
+                            value={
+                              payments?.find((p) => p.entity_id === item.id)
+                                ?.status || "pending"
+                            }
+                            options={["pending", "paid", "failed", "refunded"]}
+                          />
+                          <SaveButton label="Save booking" />
+                        </ActionForm>
+                      </div>
+                    </details>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -74,5 +140,33 @@ export default async function Page() {
         </table>
       </div>
     </>
+  );
+}
+function Select({
+  name,
+  label,
+  value,
+  options,
+}: {
+  name: string;
+  label: string;
+  value: string;
+  options: string[];
+}) {
+  return (
+    <label className="text-sm">
+      <span className="mb-2 block">{label}</span>
+      <select
+        name={name}
+        defaultValue={value}
+        className="w-full border border-black/15 bg-white p-3"
+      >
+        {options.map((x) => (
+          <option key={x} value={x}>
+            {x.replaceAll("_", " ")}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

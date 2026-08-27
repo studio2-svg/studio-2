@@ -7,10 +7,8 @@ import {
   TextField,
 } from "@/components/admin-form-fields";
 import { StudiosManager } from "@/components/studios-manager";
-import { PricingRulesManager } from "@/components/pricing-rules-manager";
 import {
   addBlockedPeriod,
-  addPricingRule,
   addStudioImages,
   deleteStudioImage,
   deleteProductionType,
@@ -66,7 +64,6 @@ async function Configuration({
   const [
     { data: hours },
     { data: blocks },
-    { data: prices },
     { data: rules },
     { data: images },
     { data: purposes },
@@ -81,11 +78,6 @@ async function Configuration({
       .select("*")
       .eq("studio_id", studio.id)
       .order("starts_at"),
-    supabase
-      .from("pricing_rules")
-      .select("*")
-      .eq("studio_id", studio.id)
-      .order("priority"),
     supabase
       .from("booking_rules")
       .select("*")
@@ -108,11 +100,125 @@ async function Configuration({
       </div>
       <section className="bg-paper p-6">
         <h2 className="font-display text-2xl">Production types</h2>
-        <p className="mt-2 text-sm text-black/50">Active production types appear in the client booking dropdown.</p>
-        <ActionForm action={saveProductionType} successMessage="Production type added." className="mt-5 grid gap-4 sm:grid-cols-2">
-          <input type="hidden" name="id" value=""/><TextField name="name" label="Production type" required/><TextField name="slug" label="Slug (optional)"/><div className="sm:col-span-2"><TextArea name="description" label="Description"/></div><TextField name="sort_order" label="Sort order" type="number" value={0}/><label className="pt-8 text-sm"><input type="checkbox" name="active" defaultChecked className="mr-2"/>Active</label><div className="sm:col-span-2"><SaveButton label="Add production type"/></div>
+        <p className="mt-2 text-sm text-black/50">
+          Active production types appear in the client booking dropdown.
+        </p>
+        <ActionForm
+          action={saveProductionType}
+          successMessage="Production type added."
+          className="mt-5 grid gap-4 sm:grid-cols-2"
+        >
+          <input type="hidden" name="id" value="" />
+          <TextField name="name" label="Production type" required />
+          <TextField name="slug" label="Slug (optional)" />
+          <div className="sm:col-span-2">
+            <TextArea name="description" label="Description" />
+          </div>
+          <TextField
+            name="sort_order"
+            label="Sort order"
+            type="number"
+            value={0}
+          />
+          <label className="pt-8 text-sm">
+            <input
+              type="checkbox"
+              name="active"
+              defaultChecked
+              className="mr-2"
+            />
+            Active
+          </label>
+          <div className="sm:col-span-2">
+            <SaveButton label="Add production type" />
+          </div>
         </ActionForm>
-        <div className="mt-6 overflow-x-auto"><table className="w-full min-w-[38rem] text-left text-sm"><thead><tr className="border-b border-black/10 text-black/45"><th className="p-3">Type</th><th className="p-3">Status</th><th className="p-3">Order</th><th className="p-3 text-right">Actions</th></tr></thead><tbody>{purposes?.map((purpose:any)=><tr key={purpose.id} className="border-b border-black/10 hover:bg-white"><td className="p-3 font-medium">{purpose.name}</td><td className="p-3">{purpose.active?"Active":"Hidden"}</td><td className="p-3">{purpose.sort_order}</td><td className="p-3"><div className="flex justify-end gap-2"><details className="relative"><summary className="cursor-pointer list-none border border-black/15 px-3 py-2 hover:bg-gold">Edit</summary><div className="absolute right-0 z-20 mt-2 w-[32rem] max-w-[80vw] bg-paper p-5 shadow-2xl"><ActionForm action={saveProductionType} successMessage="Production type updated." className="grid gap-3"><input type="hidden" name="id" value={purpose.id}/><TextField name="name" label="Production type" value={purpose.name} required/><TextField name="slug" label="Slug (optional)" value={purpose.slug}/><TextArea name="description" label="Description" value={purpose.description}/><TextField name="sort_order" label="Sort order" type="number" value={purpose.sort_order}/><label className="text-sm"><input type="checkbox" name="active" defaultChecked={purpose.active} className="mr-2"/>Active</label><SaveButton label="Save changes"/></ActionForm></div></details><ActionForm action={deleteProductionType} successMessage="Production type deleted." className="inline"><input type="hidden" name="id" value={purpose.id}/><button className="border border-red-700 px-3 py-2 text-red-700 hover:bg-red-700 hover:text-white">Delete</button></ActionForm></div></td></tr>)}</tbody></table></div>
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full min-w-[38rem] text-left text-sm">
+            <thead>
+              <tr className="border-b border-black/10 text-black/45">
+                <th className="p-3">Type</th>
+                <th className="p-3">Status</th>
+                <th className="p-3">Order</th>
+                <th className="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purposes?.map((purpose: any) => (
+                <tr
+                  key={purpose.id}
+                  className="border-b border-black/10 hover:bg-white"
+                >
+                  <td className="p-3 font-medium">{purpose.name}</td>
+                  <td className="p-3">
+                    {purpose.active ? "Active" : "Hidden"}
+                  </td>
+                  <td className="p-3">{purpose.sort_order}</td>
+                  <td className="p-3">
+                    <div className="flex justify-end gap-2">
+                      <details className="relative">
+                        <summary className="cursor-pointer list-none border border-black/15 px-3 py-2 hover:bg-gold">
+                          Edit
+                        </summary>
+                        <div className="absolute right-0 z-20 mt-2 w-[32rem] max-w-[80vw] bg-paper p-5 shadow-2xl">
+                          <ActionForm
+                            action={saveProductionType}
+                            successMessage="Production type updated."
+                            className="grid gap-3"
+                          >
+                            <input type="hidden" name="id" value={purpose.id} />
+                            <TextField
+                              name="name"
+                              label="Production type"
+                              value={purpose.name}
+                              required
+                            />
+                            <TextField
+                              name="slug"
+                              label="Slug (optional)"
+                              value={purpose.slug}
+                            />
+                            <TextArea
+                              name="description"
+                              label="Description"
+                              value={purpose.description}
+                            />
+                            <TextField
+                              name="sort_order"
+                              label="Sort order"
+                              type="number"
+                              value={purpose.sort_order}
+                            />
+                            <label className="text-sm">
+                              <input
+                                type="checkbox"
+                                name="active"
+                                defaultChecked={purpose.active}
+                                className="mr-2"
+                              />
+                              Active
+                            </label>
+                            <SaveButton label="Save changes" />
+                          </ActionForm>
+                        </div>
+                      </details>
+                      <ActionForm
+                        action={deleteProductionType}
+                        successMessage="Production type deleted."
+                        className="inline"
+                      >
+                        <input type="hidden" name="id" value={purpose.id} />
+                        <button className="border border-red-700 px-3 py-2 text-red-700 hover:bg-red-700 hover:text-white">
+                          Delete
+                        </button>
+                      </ActionForm>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
       <section className="bg-paper p-6">
         <h2 className="font-display text-2xl">
@@ -288,73 +394,61 @@ async function Configuration({
           </ActionForm>
           <div className="mt-6 space-y-3">
             {blocks?.map((block: any) => (
-              <details key={block.id} className="border-t border-black/10 p-3 text-sm transition hover:bg-white">
-                <summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong className="block">{block.reason}</strong><span className="text-black/50">{new Date(block.starts_at).toLocaleString()} – {new Date(block.ends_at).toLocaleString()}</span></span><span className="text-xs uppercase tracking-[.14em] text-gold">Edit</span></span></summary>
-                <ActionForm action={updateBlockedPeriod} successMessage="Blocked period updated." className="mt-4 grid gap-3 border-t border-black/10 pt-4">
+              <details
+                key={block.id}
+                className="border-t border-black/10 p-3 text-sm transition hover:bg-white"
+              >
+                <summary className="cursor-pointer list-none">
+                  <span className="flex items-center justify-between gap-4">
+                    <span>
+                      <strong className="block">{block.reason}</strong>
+                      <span className="text-black/50">
+                        {new Date(block.starts_at).toLocaleString()} –{" "}
+                        {new Date(block.ends_at).toLocaleString()}
+                      </span>
+                    </span>
+                    <span className="text-xs uppercase tracking-[.14em] text-gold">
+                      Edit
+                    </span>
+                  </span>
+                </summary>
+                <ActionForm
+                  action={updateBlockedPeriod}
+                  successMessage="Blocked period updated."
+                  className="mt-4 grid gap-3 border-t border-black/10 pt-4"
+                >
                   <input type="hidden" name="id" value={block.id} />
                   <input type="hidden" name="studio_id" value={studio.id} />
-                  <TextField name="starts_at" label="Starts" type="datetime-local" value={new Date(block.starts_at).toISOString().slice(0,16)} required />
-                  <TextField name="ends_at" label="Ends" type="datetime-local" value={new Date(block.ends_at).toISOString().slice(0,16)} required />
-                  <TextField name="reason" label="Reason" value={block.reason} required />
-                  <TextArea name="internal_notes" label="Internal notes" value={block.internal_notes} />
+                  <TextField
+                    name="starts_at"
+                    label="Starts"
+                    type="datetime-local"
+                    value={new Date(block.starts_at).toISOString().slice(0, 16)}
+                    required
+                  />
+                  <TextField
+                    name="ends_at"
+                    label="Ends"
+                    type="datetime-local"
+                    value={new Date(block.ends_at).toISOString().slice(0, 16)}
+                    required
+                  />
+                  <TextField
+                    name="reason"
+                    label="Reason"
+                    value={block.reason}
+                    required
+                  />
+                  <TextArea
+                    name="internal_notes"
+                    label="Internal notes"
+                    value={block.internal_notes}
+                  />
                   <SaveButton label="Save blocked period" />
                 </ActionForm>
               </details>
             ))}
           </div>
-        </section>
-        <section className="bg-paper p-6">
-          <h2 className="font-display text-2xl">Pricing · {studio.name}</h2>
-          <p className="mt-2 text-sm text-black/50">
-            Rules here apply only to this studio.
-          </p>
-          <ActionForm
-            action={addPricingRule}
-            successMessage="Pricing rule added."
-            className="mt-5 grid gap-4"
-          >
-            <input type="hidden" name="studio_id" value={studio.id} />
-            <TextField name="name" label="Rule name" required />
-            <label className="text-sm">
-              <span className="mb-2 block">Type</span>
-              <select
-                name="rule_type"
-                className="w-full border border-black/15 bg-white px-3 py-2.5"
-              >
-                <option value="hourly">Hourly</option>
-                <option value="fixed">Fixed</option>
-                <option value="tiered">Tiered</option>
-                <option value="percentage">Percentage</option>
-                <option value="flat_fee">Flat fee</option>
-              </select>
-            </label>
-            <TextField
-              name="amount"
-              label={`Amount (${studio.currency})`}
-              type="number"
-              value={0}
-            />
-            <TextField
-              name="priority"
-              label="Priority"
-              type="number"
-              value={0}
-            />
-            <label className="text-sm">
-              <input
-                type="checkbox"
-                name="active"
-                defaultChecked
-                className="mr-2"
-              />
-              Active
-            </label>
-            <SaveButton label="Add pricing rule" />
-          </ActionForm>
-          <PricingRulesManager
-            rules={prices || []}
-            currency={studio.currency}
-          />
         </section>
       </div>
     </div>
