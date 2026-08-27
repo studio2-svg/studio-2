@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import {connection} from "next/server";
 import { requireUser } from "@/lib/auth";
@@ -11,10 +12,10 @@ import { createBooking } from "./actions";
 export default async function BookPage() {
   await connection();
   const { supabase } = await requireUser();
-  const [{ data: studios }, { data: purposes }] = await Promise.all([
+  const [{ data: studios }, { data: purposes },{data:equipment}] = await Promise.all([
     supabase
       .from("studios")
-      .select("id,name,currency")
+      .select("id,name,currency,description,cover_image_url")
       .eq("active", true)
       .order("name"),
     supabase
@@ -22,6 +23,7 @@ export default async function BookPage() {
       .select("id,name")
       .eq("active", true)
       .order("sort_order"),
+    supabase.from("equipment").select("id,name,price_minor,pricing_type,total_quantity,image_url").eq("status","available").order("name"),
   ]);
   return (
     <main className="min-h-screen bg-[#ebe7de] px-4 py-10 sm:px-6">
@@ -47,10 +49,11 @@ export default async function BookPage() {
           successMessage="Booking request submitted. You can now view it in your dashboard."
           className="mt-10 grid gap-5 bg-paper p-6 sm:p-8"
         >
-          <label className="text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">{studios?.map(studio=><label key={studio.id} className="group cursor-pointer overflow-hidden border border-black/10 bg-white transition hover:border-gold hover:shadow-lg">{studio.cover_image_url&&<img src={studio.cover_image_url} alt={studio.name} className="aspect-video w-full object-cover transition group-hover:scale-105"/>}<span className="block p-4"><input type="radio" name="studio_id" value={studio.id} required className="mr-2"/><strong>{studio.name}</strong><small className="mt-2 block text-black/50">{studio.description}</small></span></label>)}</div>
+          <label className="hidden text-sm">
             <span className="mb-2 block">Studio</span>
             <select
-              name="studio_id"
+              name="legacy_studio_id"
               required
               className="w-full border border-black/15 bg-white px-4 py-3"
             >
@@ -91,7 +94,8 @@ export default async function BookPage() {
             />
           </div>
           <TextArea name="notes" label="Project notes" rows={5} />
-          <SaveButton label="Submit booking request" />
+          <fieldset><legend className="mb-3 font-display text-2xl">Add equipment</legend><div className="grid gap-3 sm:grid-cols-2">{equipment?.map(item=><label key={item.id} className="flex gap-3 border border-black/10 bg-white p-4 transition hover:border-gold"><input type="checkbox" name="equipment_ids" value={item.id}/><span><strong>{item.name}</strong><small className="block text-black/50">{item.total_quantity} available · GHS {(item.price_minor/100).toFixed(2)} {item.pricing_type}</small></span></label>)}</div></fieldset>
+          <SaveButton label="Proceed to secure checkout" />
         </ActionForm>
       </div>
     </main>
