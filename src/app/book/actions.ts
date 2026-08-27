@@ -1,7 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import {headers} from "next/headers";
-import {redirect} from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -109,9 +108,9 @@ export async function createBooking(form: FormData) {
     })));
     if (staffError) throw new Error(staffError.message);
   }
-  const reference=`booking-${booking.id}`;await supabase.from("payments").insert({customer_id:user.id,entity_type:"booking",entity_id:booking.id,reference,amount_minor:total});
+  const reference=`booking-${booking.id}`;const{error:paymentError}=await supabase.from("payments").insert({customer_id:user.id,entity_type:"booking",entity_id:booking.id,reference,amount_minor:total});if(paymentError)throw new Error(paymentError.message);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
   revalidatePath("/admin/bookings");
-  const origin=(await headers()).get("origin")||process.env.NEXT_PUBLIC_SITE_URL||"https://studio-2-psi.vercel.app";const checkout=await initializePaystack({email:user.email!,amount:total,reference,callbackUrl:`${origin}/payment/callback`,metadata:{type:"booking",booking_id:booking.id}});redirect(checkout.authorization_url);
+  const origin=(await headers()).get("origin")||process.env.NEXT_PUBLIC_SITE_URL||"https://studio-2-psi.vercel.app";const checkout=await initializePaystack({email:user.email!,amount:total,reference,callbackUrl:`${origin}/payment/callback`,metadata:{type:"booking",booking_id:booking.id}});return{redirectTo:checkout.authorization_url};
 }

@@ -10,7 +10,7 @@ export function ActionForm({
   className,
   children,
 }: {
-  action: (data: FormData) => Promise<void>;
+  action: (data: FormData) => Promise<void | { redirectTo: string }>;
   successMessage: string;
   className?: string;
   children: React.ReactNode;
@@ -21,7 +21,11 @@ export function ActionForm({
     setPending(true);
     setNotice(null);
     try {
-      await action(data);
+      const result = await action(data);
+      if (result && "redirectTo" in result) {
+        window.location.assign(result.redirectTo);
+        return;
+      }
       setNotice({ kind: "success", message: successMessage });
     } catch (error) {
       if(typeof error==="object"&&error!==null&&"digest" in error&&String(error.digest).startsWith("NEXT_REDIRECT"))throw error;
