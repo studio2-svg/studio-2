@@ -1,0 +1,1 @@
+import {EmptyPanel,PortalHeader} from "@/components/portal-page";export default function Page(){return <><PortalHeader eyebrow="Finance" title="Payments" description="Track customer payments and transaction status."/><EmptyPanel title="No payments yet" message="Payment records will appear after the first paid booking."/></>}

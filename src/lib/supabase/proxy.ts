@@ -9,5 +9,15 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (!user && path.startsWith("/admin")) { const login = request.nextUrl.clone(); login.pathname = "/admin-login"; login.searchParams.set("next", path); return NextResponse.redirect(login); }
   if (!user && path.startsWith("/dashboard")) { const login = request.nextUrl.clone(); login.pathname = "/login"; login.searchParams.set("next", path); return NextResponse.redirect(login); }
+  if (user && path.startsWith("/admin") && path !== "/admin-login") {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    const role = profile?.role;
+    if (!role || !["staff", "manager", "admin", "owner"].includes(role)) return NextResponse.redirect(new URL("/dashboard", request.url));
+    if (["staff", "manager"].includes(role) && path !== "/admin") {
+      const moduleKey = path.split("/")[2]?.replace("staff-accounts", "staff");
+      const permissions = Array.isArray(user.app_metadata.permissions) ? user.app_metadata.permissions : [];
+      if (!moduleKey || !permissions.includes(moduleKey)) return NextResponse.redirect(new URL("/admin", request.url));
+    }
+  }
   return response;
 }

@@ -1,0 +1,1 @@
+import {EmptyPanel,PortalHeader} from "@/components/portal-page";export default function Page(){return <><PortalHeader eyebrow="Billing" title="Payments"/><EmptyPanel title="No payments" message="Your payment history and receipts will appear here."/></>}

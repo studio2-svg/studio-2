@@ -14,7 +14,7 @@ export async function adminLogin(_: AdminLoginState, formData: FormData): Promis
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error || !data.user) return { error: "The email or password is incorrect." };
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
-  if (!profile || !["admin", "owner"].includes(profile.role)) {
+  if (!profile || !["staff", "manager", "admin", "owner"].includes(profile.role)) {
     await supabase.auth.signOut();
     return { error: "This account does not have administrator access." };
   }

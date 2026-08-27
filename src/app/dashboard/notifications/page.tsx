@@ -1,0 +1,1 @@
+import {EmptyPanel,PortalHeader} from "@/components/portal-page";export default function Page(){return <><PortalHeader eyebrow="Your account" title="Notifications"/><EmptyPanel title="You’re all caught up" message="Booking confirmations, payment updates, and reminders will appear here."/></>}
