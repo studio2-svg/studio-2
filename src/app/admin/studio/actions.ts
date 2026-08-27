@@ -55,6 +55,7 @@ export async function saveStudio(form: FormData) {
       timezone: text(80).min(1),
       currency: z.string().length(3),
       current_cover_image_url: z.string(),
+      featured:z.string().optional(),
       active: z.string().optional(),
     })
     .parse(Object.fromEntries(form));
@@ -75,6 +76,7 @@ export async function saveStudio(form: FormData) {
       timezone: v.timezone,
       currency: v.currency.toUpperCase(),
       cover_image_url,
+      featured:v.featured==="on",
       active: v.active === "on",
     })
     .eq("id", v.id);

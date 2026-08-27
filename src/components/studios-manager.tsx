@@ -22,6 +22,7 @@ type Studio = {
   timezone: string;
   currency: string;
   cover_image_url: string | null;
+  featured:boolean;
   active: boolean;
 };
 export function StudiosManager({
@@ -167,6 +168,9 @@ function StudioForm({ studio }: { studio?: Studio }) {
         <TextField name="timezone" label="Timezone" value={studio.timezone} />
         <TextField name="currency" label="Currency" value={studio.currency} />
       </div>
+      <label className="text-sm">
+        <input type="checkbox" name="featured" defaultChecked={studio.featured} className="mr-2"/>Featured on homepage
+      </label>
       <label className="text-sm">
         <input
           type="checkbox"

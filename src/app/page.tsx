@@ -48,11 +48,12 @@ type Testimonial = {
   company: string | null;
 };
 type Faq = { id: string; question: string; answer: string };
+type Studio={id:string;name:string;description:string|null;cover_image_url:string|null;featured:boolean};
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata(await getPublishedPage("home"));
 }
 export default async function Home() {
-  const [page, services, equipment, team, gallery, testimonials, faqs] =
+  const [page, services, equipment, team, gallery, testimonials, faqs,studios] =
     await Promise.all([
       getPublishedPage("home"),
       getPublicData<Service>("services"),
@@ -61,6 +62,7 @@ export default async function Home() {
       getPublicCollection<Gallery>("gallery_items"),
       getPublicCollection<Testimonial>("testimonials"),
       getPublicCollection<Faq>("faqs"),
+      getPublicData<Studio>("studios"),
     ]);
   if (!page)
     return (
@@ -116,6 +118,7 @@ export default async function Home() {
           </Link>
         </div>
       </section>
+      {studios.some(studio=>studio.featured)&&<section className="bg-ink px-6 py-24 text-paper"><div className="mx-auto max-w-7xl"><Heading eyebrow="Featured studios" title="Choose your production space." href="/book" dark/><div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">{studios.filter(studio=>studio.featured).map(studio=><Link prefetch={false} href="/book" key={studio.id} className="group overflow-hidden border border-white/10 transition hover:-translate-y-1 hover:border-gold">{studio.cover_image_url?<img src={studio.cover_image_url} alt={studio.name} className="aspect-video w-full object-cover transition duration-500 group-hover:scale-105"/>:<div className="aspect-video bg-white/5"/>}<div className="p-6"><h3 className="font-display text-3xl">{studio.name}</h3><p className="mt-3 line-clamp-3 text-sm leading-6 text-white/55">{studio.description}</p><span className="mt-5 inline-flex items-center gap-2 text-xs uppercase tracking-[.18em] text-gold">View and book <ArrowUpRight size={15}/></span></div></Link>)}</div></div></section>}
       <section className="bg-[#e7e1d6] px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <Heading

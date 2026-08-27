@@ -1,2 +1,1 @@
-import{LoaderCircle}from"lucide-react";
-export default function Loading(){return <div className="fixed inset-0 z-[120] grid place-items-center bg-paper/85 backdrop-blur-sm"><div className="flex items-center gap-3 bg-ink px-6 py-4 text-paper shadow-2xl"><LoaderCircle className="animate-spin" size={22}/><span className="text-sm">Loading…</span></div></div>}
+export default function Loading(){return <div role="status" aria-label="Loading page" className="fixed inset-x-0 top-0 z-[120] h-1 overflow-hidden bg-gold/20"><span className="block h-full w-1/3 animate-pulse bg-gold"/></div>}
