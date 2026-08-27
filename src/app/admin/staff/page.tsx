@@ -41,7 +41,7 @@ export default async function StaffAdmin() {
             <h2 className="font-display text-2xl">Add staff category</h2>
             <input type="hidden" name="id" value="" />
             <TextField name="name" label="Name" required />
-            <TextField name="slug" label="Slug" required />
+            <TextField name="slug" label="Slug (optional)" />
             <TextArea name="description" label="Description" />
             <TextField
               name="sort_order"
@@ -63,7 +63,7 @@ export default async function StaffAdmin() {
           <ActionForm action={addPurpose} successMessage="Booking purpose added." className="grid gap-4 bg-paper p-6">
             <h2 className="font-display text-2xl">Add booking purpose</h2>
             <TextField name="name" label="Name" required />
-            <TextField name="slug" label="Slug" required />
+            <TextField name="slug" label="Slug (optional)" />
             <TextArea name="description" label="Description" />
             <TextField
               name="sort_order"
@@ -172,7 +172,11 @@ function StaffForm({
       <input type="hidden" name="id" value={member?.id || ""} />
       <div className="grid gap-4 sm:grid-cols-3">
         <TextField name="name" label="Name" value={member?.name} required />
-        <TextField name="slug" label="Slug" value={member?.slug} required />
+        <TextField
+          name="slug"
+          label="Slug (optional)"
+          value={member?.slug}
+        />
         <Select
           name="category_id"
           label="Category"
@@ -185,11 +189,23 @@ function StaffForm({
         label="Role title"
         value={member?.role_title}
       />
-      <TextField
-        name="profile_photo_url"
-        label="Profile photo URL"
-        value={member?.profile_photo_url}
+      <input
+        type="hidden"
+        name="current_profile_photo_url"
+        value={member?.profile_photo_url || ""}
       />
+      <label className="text-sm">
+        <span className="mb-2 block">Profile photo</span>
+        <input
+          name="profile_photo"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="w-full border border-black/15 bg-white p-3"
+        />
+        <span className="mt-2 block text-xs text-black/55">
+          JPG, PNG, WebP, or GIF. Maximum 8 MB.
+        </span>
+      </label>
       <TextArea name="bio" label="Bio" value={member?.bio} />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
