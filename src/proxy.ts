@@ -1,4 +1,13 @@
 import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 export async function proxy(request: NextRequest) { return updateSession(request); }
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"] };
+// Public pages skip authentication entirely. Protected layouts still check the
+// user; the proxy refreshes those sessions and enforces staff permissions.
+export const config = {
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/book/:path*",
+    "/equipment/:slug/rent/:path*",
+  ],
+};

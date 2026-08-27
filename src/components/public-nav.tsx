@@ -25,7 +25,6 @@ export async function PublicNav({ dark = false }: { dark?: boolean }) {
       className={`mx-auto flex max-w-7xl items-center justify-between px-6 py-7 lg:px-10 ${dark ? "text-paper" : ""}`}
     >
       <Link
-        prefetch={false}
         href="/"
         className="font-display text-xl font-semibold tracking-[.18em]"
       >
@@ -34,7 +33,6 @@ export async function PublicNav({ dark = false }: { dark?: boolean }) {
       <div className="flex items-center gap-5 text-sm">
         {links.map((item) => (
           <Link
-            prefetch={false}
             key={item.id}
             href={item.url}
             target={item.opens_new_tab ? "_blank" : undefined}
@@ -42,7 +40,7 @@ export async function PublicNav({ dark = false }: { dark?: boolean }) {
             {item.label}
           </Link>
         ))}
-        <Link prefetch={false} href="/book" className="border border-gold px-4 py-2 text-gold">
+        <Link href="/book" className="border border-gold px-4 py-2 text-gold">
           Book
         </Link>
       </div>

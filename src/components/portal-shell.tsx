@@ -29,7 +29,6 @@ export function PortalShell({
       <nav className="space-y-1">
         {nav.map((item) => (
           <Link
-            prefetch={false}
             onClick={() => setOpen(false)}
             key={item.href}
             href={item.href}
@@ -54,7 +53,7 @@ export function PortalShell({
             >
               <Menu size={20} />
             </button>
-            <Link prefetch={false} href="/" className="font-display text-xl tracking-[.18em]">
+            <Link href="/" className="font-display text-xl tracking-[.18em]">
               STUDIO TWO
             </Link>
           </div>
