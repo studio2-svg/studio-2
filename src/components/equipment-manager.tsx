@@ -146,7 +146,7 @@ function Form({ item, categories }: { item?: Item; categories: Category[] }) {
       />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField name="name" label="Name" value={item?.name} required />
-        <TextField name="slug" label="Slug" value={item?.slug} required />
+        <TextField name="slug" label="Slug (optional)" value={item?.slug} />
       </div>
       <TextArea
         name="description"

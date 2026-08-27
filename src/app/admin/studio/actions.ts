@@ -23,17 +23,18 @@ export async function addStudio(form: FormData) {
   const v = z
     .object({
       name: text(120).min(1),
-      slug: z.string().regex(/^[a-z0-9-]+$/),
+      slug: text(160),
       currency: z.string().length(3),
       timezone: text(80).min(1),
     })
     .parse(Object.fromEntries(form));
   const { supabase } = await permitted();
+  const slug = await uniqueStudioSlug(supabase, v.slug || v.name);
   const { data, error } = await supabase
     .from("studios")
     .insert({
       name: v.name,
-      slug: v.slug,
+      slug,
       currency: v.currency.toUpperCase(),
       timezone: v.timezone,
       active: true,
@@ -49,7 +50,7 @@ export async function saveStudio(form: FormData) {
     .object({
       id,
       name: text(120).min(1),
-      slug: z.string().regex(/^[a-z0-9-]+$/),
+      slug: text(160),
       description: text(3000),
       address: text(500),
       timezone: text(80).min(1),
@@ -60,6 +61,7 @@ export async function saveStudio(form: FormData) {
     })
     .parse(Object.fromEntries(form));
   const { supabase, user } = await permitted();
+  const slug = await uniqueStudioSlug(supabase, v.slug || v.name, v.id);
   const cover_image_url = await uploadImage(
     supabase,
     user.id,
@@ -70,7 +72,7 @@ export async function saveStudio(form: FormData) {
     .from("studios")
     .update({
       name: v.name,
-      slug: v.slug,
+      slug,
       description: v.description || null,
       address: v.address || null,
       timezone: v.timezone,
@@ -214,3 +216,21 @@ export async function updatePricingRule(form:FormData){const v=z.object({id,stud
 export async function deletePricingRule(form:FormData){const ruleId=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("pricing_rules").delete().eq("id",ruleId);if(error)throw new Error(error.message);refresh()}
 export async function addStudioImages(form:FormData){const studioId=id.parse(form.get("studio_id"));const{supabase,user}=await permitted();const files=form.getAll("images").filter((entry):entry is File=>entry instanceof File&&entry.size>0);if(!files.length)throw new Error("Choose at least one studio image.");if(files.length>12)throw new Error("Upload no more than 12 images at once.");const rows=[];for(const file of files){const image_url=await uploadImage(supabase,user.id,file,"");if(image_url)rows.push({studio_id:studioId,image_url,alt_text:"Studio photo"})}const{error}=await supabase.from("studio_images").insert(rows);if(error)throw new Error(error.message);refresh()}
 export async function deleteStudioImage(form:FormData){const imageId=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("studio_images").delete().eq("id",imageId);if(error)throw new Error(error.message);refresh()}
+
+async function uniqueStudioSlug(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  value: string,
+  currentId?: string,
+) {
+  const base = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!base) throw new Error("Enter a valid studio name.");
+  let slug = base;
+  let suffix = 2;
+  while (true) {
+    let query = supabase.from("studios").select("id").eq("slug", slug).limit(1);
+    if (currentId) query = query.neq("id", currentId);
+    const { data } = await query;
+    if (!data?.length) return slug;
+    slug = `${base}-${suffix++}`;
+  }
+}

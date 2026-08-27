@@ -132,7 +132,7 @@ function StudioForm({ studio }: { studio?: Studio }) {
         className="grid gap-4 sm:grid-cols-2"
       >
         <TextField name="name" label="Studio name" required />
-        <TextField name="slug" label="Slug" required />
+        <TextField name="slug" label="Slug (optional)" />
         <TextField name="currency" label="Currency" value="GHS" required />
         <TextField
           name="timezone"
@@ -155,7 +155,7 @@ function StudioForm({ studio }: { studio?: Studio }) {
       <input type="hidden" name="current_cover_image_url" value={studio.cover_image_url||""} />
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField name="name" label="Name" value={studio.name} required />
-        <TextField name="slug" label="Slug" value={studio.slug} required />
+        <TextField name="slug" label="Slug (optional)" value={studio.slug} />
       </div>
       <TextArea
         name="description"

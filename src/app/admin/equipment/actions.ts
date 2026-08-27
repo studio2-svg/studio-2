@@ -21,8 +21,10 @@ export async function saveCategory(form: FormData) {
     })
     .parse(Object.fromEntries(form));
   const { supabase } = await requireAdmin();
-  const slug=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-  if(!slug)throw new Error("Enter a valid category name or slug.");
+  const baseSlug=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(!baseSlug)throw new Error("Enter a valid category name.");
+  let slug=baseSlug,suffix=2;
+  while(true){let query=supabase.from("equipment_categories").select("id").eq("slug",slug).limit(1);if(v.id)query=query.neq("id",v.id);const{data}=await query;if(!data?.length)break;slug=`${baseSlug}-${suffix++}`}
   const values = {
     name: v.name,
     slug,

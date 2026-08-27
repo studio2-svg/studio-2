@@ -263,7 +263,7 @@ export default async function Home() {
           </Link>
         </div>
         <div className="divide-y divide-black/15">
-          {faqs.slice(0, 4).map((item) => (
+          {faqs.map((item) => (
             <details key={item.id} className="py-5">
               <summary className="cursor-pointer list-none font-medium">
                 {item.question}

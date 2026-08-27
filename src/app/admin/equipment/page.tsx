@@ -33,7 +33,7 @@ export default async function Page() {
         <ActionForm action={saveCategory} successMessage="Equipment category added." className="mt-5 grid gap-4 sm:grid-cols-2">
           <input type="hidden" name="id" value="" />
           <TextField name="name" label="Name" required />
-          <TextField name="slug" label="Slug" required />
+          <TextField name="slug" label="Slug (optional)" />
           <div className="sm:col-span-2">
             <TextArea name="description" label="Description" />
           </div>
