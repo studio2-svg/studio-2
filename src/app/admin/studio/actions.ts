@@ -56,7 +56,7 @@ export async function saveStudio(form: FormData) {
       timezone: text(80).min(1),
       currency: z.string().length(3),
       current_cover_image_url: z.string(),
-      featured:z.string().optional(),
+      featured: z.string().optional(),
       active: z.string().optional(),
     })
     .parse(Object.fromEntries(form));
@@ -78,7 +78,7 @@ export async function saveStudio(form: FormData) {
       timezone: v.timezone,
       currency: v.currency.toUpperCase(),
       cover_image_url,
-      featured:v.featured==="on",
+      featured: v.featured === "on",
       active: v.active === "on",
     })
     .eq("id", v.id);
@@ -112,18 +112,16 @@ export async function saveHours(form: FormData) {
   if (!closed && (!v.opens_at || !v.closes_at || v.closes_at <= v.opens_at))
     throw new Error("Closing time must be after opening time.");
   const { supabase } = await permitted();
-  const { error } = await supabase
-    .from("opening_hours")
-    .upsert(
-      {
-        studio_id: v.studio_id,
-        day_of_week: v.day_of_week,
-        is_closed: closed,
-        opens_at: closed ? null : v.opens_at,
-        closes_at: closed ? null : v.closes_at,
-      },
-      { onConflict: "studio_id,day_of_week" },
-    );
+  const { error } = await supabase.from("opening_hours").upsert(
+    {
+      studio_id: v.studio_id,
+      day_of_week: v.day_of_week,
+      is_closed: closed,
+      opens_at: closed ? null : v.opens_at,
+      closes_at: closed ? null : v.closes_at,
+    },
+    { onConflict: "studio_id,day_of_week" },
+  );
   if (error) throw new Error(error.message);
   refresh();
 }
@@ -168,16 +166,23 @@ export async function addBlockedPeriod(form: FormData) {
     ends = new Date(starts.getTime() + 86400000);
   if (ends <= starts)
     throw new Error("The end date cannot be before the start date.");
-  const { error } = await supabase
-    .from("blocked_periods")
-    .insert({
-      studio_id: v.studio_id,
-      starts_at: starts.toISOString(),
-      ends_at: ends.toISOString(),
-      reason: v.reason,
-      internal_notes: v.internal_notes || null,
-      created_by: user.id,
-    });
+  const { error } = await supabase.from("blocked_periods").insert({
+    studio_id: v.studio_id,
+    starts_at: starts.toISOString(),
+    ends_at: ends.toISOString(),
+    reason: v.reason,
+    internal_notes: v.internal_notes || null,
+    created_by: user.id,
+  });
+  if (error) throw new Error(error.message);
+  refresh();
+}
+export async function updateBlockedPeriod(form: FormData) {
+  const v = z.object({ id, studio_id:id, starts_at:z.string().min(1), ends_at:z.string().min(1), reason:text(300).min(1), internal_notes:text(1000) }).parse(Object.fromEntries(form));
+  const starts = new Date(v.starts_at), ends = new Date(v.ends_at);
+  if (Number.isNaN(starts.valueOf()) || Number.isNaN(ends.valueOf()) || ends <= starts) throw new Error("Choose a valid start and end period.");
+  const { supabase } = await permitted();
+  const { error } = await supabase.from("blocked_periods").update({ starts_at:starts.toISOString(), ends_at:ends.toISOString(), reason:v.reason, internal_notes:v.internal_notes||null }).eq("id",v.id).eq("studio_id",v.studio_id);
   if (error) throw new Error(error.message);
   refresh();
 }
@@ -199,30 +204,100 @@ export async function addPricingRule(form: FormData) {
     })
     .parse(Object.fromEntries(form));
   const { supabase } = await permitted();
+  const { error } = await supabase.from("pricing_rules").insert({
+    studio_id: v.studio_id,
+    name: v.name,
+    rule_type: v.rule_type,
+    amount_minor: Math.round(v.amount * 100),
+    priority: v.priority,
+    active: v.active === "on",
+  });
+  if (error) throw new Error(error.message);
+  refresh();
+}
+export async function updatePricingRule(form: FormData) {
+  const v = z
+    .object({
+      id,
+      studio_id: id,
+      name: text(160).min(1),
+      rule_type: z.enum([
+        "hourly",
+        "fixed",
+        "tiered",
+        "percentage",
+        "flat_fee",
+      ]),
+      amount: z.coerce.number().min(0),
+      priority: z.coerce.number().int(),
+      active: z.string().optional(),
+    })
+    .parse(Object.fromEntries(form));
+  const { supabase } = await permitted();
   const { error } = await supabase
     .from("pricing_rules")
-    .insert({
-      studio_id: v.studio_id,
+    .update({
       name: v.name,
       rule_type: v.rule_type,
       amount_minor: Math.round(v.amount * 100),
       priority: v.priority,
       active: v.active === "on",
-    });
+    })
+    .eq("id", v.id)
+    .eq("studio_id", v.studio_id);
   if (error) throw new Error(error.message);
   refresh();
 }
-export async function updatePricingRule(form:FormData){const v=z.object({id,studio_id:id,name:text(160).min(1),rule_type:z.enum(["hourly","fixed","tiered","percentage","flat_fee"]),amount:z.coerce.number().min(0),priority:z.coerce.number().int(),active:z.string().optional()}).parse(Object.fromEntries(form));const{supabase}=await permitted();const{error}=await supabase.from("pricing_rules").update({name:v.name,rule_type:v.rule_type,amount_minor:Math.round(v.amount*100),priority:v.priority,active:v.active==="on"}).eq("id",v.id).eq("studio_id",v.studio_id);if(error)throw new Error(error.message);refresh()}
-export async function deletePricingRule(form:FormData){const ruleId=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("pricing_rules").delete().eq("id",ruleId);if(error)throw new Error(error.message);refresh()}
-export async function addStudioImages(form:FormData){const studioId=id.parse(form.get("studio_id"));const{supabase,user}=await permitted();const files=form.getAll("images").filter((entry):entry is File=>entry instanceof File&&entry.size>0);if(!files.length)throw new Error("Choose at least one studio image.");if(files.length>12)throw new Error("Upload no more than 12 images at once.");const rows=[];for(const file of files){const image_url=await uploadImage(supabase,user.id,file,"");if(image_url)rows.push({studio_id:studioId,image_url,alt_text:"Studio photo"})}const{error}=await supabase.from("studio_images").insert(rows);if(error)throw new Error(error.message);refresh()}
-export async function deleteStudioImage(form:FormData){const imageId=id.parse(form.get("id"));const{supabase}=await permitted();const{error}=await supabase.from("studio_images").delete().eq("id",imageId);if(error)throw new Error(error.message);refresh()}
+export async function deletePricingRule(form: FormData) {
+  const ruleId = id.parse(form.get("id"));
+  const { supabase } = await permitted();
+  const { error } = await supabase
+    .from("pricing_rules")
+    .delete()
+    .eq("id", ruleId);
+  if (error) throw new Error(error.message);
+  refresh();
+}
+export async function addStudioImages(form: FormData) {
+  const studioId = id.parse(form.get("studio_id"));
+  const { supabase, user } = await permitted();
+  const files = form
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  if (!files.length) throw new Error("Choose at least one studio image.");
+  if (files.length > 12)
+    throw new Error("Upload no more than 12 images at once.");
+  const rows = [];
+  for (const file of files) {
+    const image_url = await uploadImage(supabase, user.id, file, "");
+    if (image_url)
+      rows.push({ studio_id: studioId, image_url, alt_text: "Studio photo" });
+  }
+  const { error } = await supabase.from("studio_images").insert(rows);
+  if (error) throw new Error(error.message);
+  refresh();
+}
+export async function deleteStudioImage(form: FormData) {
+  const imageId = id.parse(form.get("id"));
+  const { supabase } = await permitted();
+  const { error } = await supabase
+    .from("studio_images")
+    .delete()
+    .eq("id", imageId);
+  if (error) throw new Error(error.message);
+  refresh();
+}
 
 async function uniqueStudioSlug(
   supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
   value: string,
   currentId?: string,
 ) {
-  const base = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const base = value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   if (!base) throw new Error("Enter a valid studio name.");
   let slug = base;
   let suffix = 2;

@@ -1,3 +1,109 @@
 "use server";
-import {headers} from "next/headers";import {z} from "zod";import {requireUser} from "@/lib/auth";import {createAdminClient} from "@/lib/supabase/admin";import {initializePaystack,paystackSecret} from "@/lib/paystack";
-export async function createRental(form:FormData){paystackSecret();const input=z.object({equipment_id:z.uuid(),quantity:z.coerce.number().int().positive(),starts_at:z.string().min(1),ends_at:z.string().min(1)}).parse(Object.fromEntries(form));const starts=new Date(input.starts_at),ends=new Date(input.ends_at);if(ends<=starts||starts<=new Date())throw new Error("Choose a valid future rental period.");const{user,supabase}=await requireUser();const{data:equipment}=await supabase.from("equipment").select("name,total_quantity,price_minor,pricing_type").eq("id",input.equipment_id).single();if(!equipment||input.quantity>equipment.total_quantity)throw new Error("The requested quantity is not available.");const{count}=await supabase.from("equipment_rentals").select("id",{count:"exact",head:true}).eq("equipment_id",input.equipment_id).in("status",["awaiting_payment","paid","ready","collected"]).lt("starts_at",ends.toISOString()).gt("ends_at",starts.toISOString());if((count??0)+input.quantity>equipment.total_quantity)throw new Error("Not enough units are available for that period.");const card=form.get("ghana_card");if(!(card instanceof File)||card.size===0)throw new Error("Upload a clear image of your Ghana Card.");if(card.size>8*1024*1024||!["image/jpeg","image/png","image/webp"].includes(card.type))throw new Error("Ghana Card must be JPG, PNG, or WebP and no larger than 8 MB.");const admin=createAdminClient(),path=`${user.id}/${crypto.randomUUID()}.${card.type.split("/")[1]}`;const{error:uploadError}=await admin.storage.from("identity-documents").upload(path,await card.arrayBuffer(),{contentType:card.type});if(uploadError)throw new Error("Ghana Card upload failed.");const units=equipment.pricing_type==="hourly"?Math.ceil((ends.getTime()-starts.getTime())/3600000):equipment.pricing_type==="daily"?Math.ceil((ends.getTime()-starts.getTime())/86400000):1,total=equipment.price_minor*units*input.quantity;const{data:rental,error}=await supabase.from("equipment_rentals").insert({customer_id:user.id,equipment_id:input.equipment_id,quantity:input.quantity,starts_at:starts.toISOString(),ends_at:ends.toISOString(),total_minor:total,ghana_card_path:path}).select("id").single();if(error||!rental)throw new Error(error?.message||"Rental could not be created.");const reference=`rental-${rental.id}`;const{error:paymentError}=await supabase.from("payments").insert({customer_id:user.id,entity_type:"equipment_rental",entity_id:rental.id,reference,amount_minor:total});if(paymentError)throw new Error(paymentError.message);const origin=(await headers()).get("origin")||process.env.NEXT_PUBLIC_SITE_URL||"https://studio-2-psi.vercel.app";const checkout=await initializePaystack({email:user.email!,amount:total,reference,callbackUrl:`${origin}/payment/callback`,metadata:{type:"equipment_rental",rental_id:rental.id}});return{redirectTo:checkout.authorization_url}}
+import { headers } from "next/headers";
+import { z } from "zod";
+import { requireUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { initializePaystack, paystackSecret } from "@/lib/paystack";
+export async function createRental(form: FormData) {
+  try {
+    return await createRentalCheckout(form);
+  } catch (error) {
+    if (!process.env.PAYSTACK_SECRET_KEY)
+      return { error: "Online payment is not configured yet. Add the Paystack secret key in Vercel before checking out." };
+    return { error: error instanceof Error ? error.message : "Checkout could not be started. Please try again." };
+  }
+}
+
+async function createRentalCheckout(form: FormData) {
+  paystackSecret();
+  const input = z
+    .object({
+      equipment_id: z.uuid(),
+      quantity: z.coerce.number().int().positive(),
+      starts_at: z.string().min(1),
+      ends_at: z.string().min(1),
+    })
+    .parse(Object.fromEntries(form));
+  const starts = new Date(input.starts_at),
+    ends = new Date(input.ends_at);
+  if (ends <= starts || starts <= new Date())
+    throw new Error("Choose a valid future rental period.");
+  const { user, supabase } = await requireUser();
+  const { data: equipment } = await supabase
+    .from("equipment")
+    .select("name,total_quantity,price_minor,pricing_type")
+    .eq("id", input.equipment_id)
+    .single();
+  if (!equipment || input.quantity > equipment.total_quantity)
+    throw new Error("The requested quantity is not available.");
+  const { count } = await supabase
+    .from("equipment_rentals")
+    .select("id", { count: "exact", head: true })
+    .eq("equipment_id", input.equipment_id)
+    .in("status", ["awaiting_payment", "paid", "ready", "collected"])
+    .lt("starts_at", ends.toISOString())
+    .gt("ends_at", starts.toISOString());
+  if ((count ?? 0) + input.quantity > equipment.total_quantity)
+    throw new Error("Not enough units are available for that period.");
+  const card = form.get("ghana_card");
+  if (!(card instanceof File) || card.size === 0)
+    throw new Error("Upload a clear image of your Ghana Card.");
+  if (
+    card.size > 8 * 1024 * 1024 ||
+    !["image/jpeg", "image/png", "image/webp"].includes(card.type)
+  )
+    throw new Error(
+      "Ghana Card must be JPG, PNG, or WebP and no larger than 8 MB.",
+    );
+  const admin = createAdminClient(),
+    path = `${user.id}/${crypto.randomUUID()}.${card.type.split("/")[1]}`;
+  const { error: uploadError } = await admin.storage
+    .from("identity-documents")
+    .upload(path, await card.arrayBuffer(), { contentType: card.type });
+  if (uploadError) throw new Error("Ghana Card upload failed.");
+  const units =
+      equipment.pricing_type === "hourly"
+        ? Math.ceil((ends.getTime() - starts.getTime()) / 3600000)
+        : equipment.pricing_type === "daily"
+          ? Math.ceil((ends.getTime() - starts.getTime()) / 86400000)
+          : 1,
+    total = equipment.price_minor * units * input.quantity;
+  const { data: rental, error } = await supabase
+    .from("equipment_rentals")
+    .insert({
+      customer_id: user.id,
+      equipment_id: input.equipment_id,
+      quantity: input.quantity,
+      starts_at: starts.toISOString(),
+      ends_at: ends.toISOString(),
+      total_minor: total,
+      ghana_card_path: path,
+    })
+    .select("id")
+    .single();
+  if (error || !rental)
+    throw new Error(error?.message || "Rental could not be created.");
+  const reference = `rental-${rental.id}`;
+  const { error: paymentError } = await supabase
+    .from("payments")
+    .insert({
+      customer_id: user.id,
+      entity_type: "equipment_rental",
+      entity_id: rental.id,
+      reference,
+      amount_minor: total,
+    });
+  if (paymentError) throw new Error(paymentError.message);
+  const origin =
+    (await headers()).get("origin") ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://studio-2-psi.vercel.app";
+  const checkout = await initializePaystack({
+    email: user.email!,
+    amount: total,
+    reference,
+    callbackUrl: `${origin}/payment/callback`,
+    metadata: { type: "equipment_rental", rental_id: rental.id },
+  });
+  return { redirectTo: checkout.authorization_url };
+}

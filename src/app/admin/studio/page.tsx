@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@/components/admin-form-fields";
 import { StudiosManager } from "@/components/studios-manager";
-import {PricingRulesManager} from "@/components/pricing-rules-manager";
+import { PricingRulesManager } from "@/components/pricing-rules-manager";
 import {
   addBlockedPeriod,
   addPricingRule,
@@ -15,6 +15,7 @@ import {
   deleteStudioImage,
   saveBookingRules,
   saveHours,
+  updateBlockedPeriod,
 } from "./actions";
 const days = [
   "Sunday",
@@ -60,30 +61,39 @@ async function Configuration({
   studio: Record<string, any>;
   supabase: any;
 }) {
-  const [{ data: hours }, { data: blocks }, { data: prices }, { data: rules },{data:images}] =
-    await Promise.all([
-      supabase
-        .from("opening_hours")
-        .select("*")
-        .eq("studio_id", studio.id)
-        .order("day_of_week"),
-      supabase
-        .from("blocked_periods")
-        .select("*")
-        .eq("studio_id", studio.id)
-        .order("starts_at"),
-      supabase
-        .from("pricing_rules")
-        .select("*")
-        .eq("studio_id", studio.id)
-        .order("priority"),
-      supabase
-        .from("booking_rules")
-        .select("*")
-        .eq("studio_id", studio.id)
-        .maybeSingle(),
-      supabase.from("studio_images").select("*").eq("studio_id",studio.id).order("sort_order"),
-    ]);
+  const [
+    { data: hours },
+    { data: blocks },
+    { data: prices },
+    { data: rules },
+    { data: images },
+  ] = await Promise.all([
+    supabase
+      .from("opening_hours")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .order("day_of_week"),
+    supabase
+      .from("blocked_periods")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .order("starts_at"),
+    supabase
+      .from("pricing_rules")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .order("priority"),
+    supabase
+      .from("booking_rules")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .maybeSingle(),
+    supabase
+      .from("studio_images")
+      .select("*")
+      .eq("studio_id", studio.id)
+      .order("sort_order"),
+  ]);
   return (
     <div className="mt-8 grid gap-8">
       <div className="border-l-4 border-gold bg-ink p-5 text-paper transition hover:translate-x-1">
@@ -92,7 +102,57 @@ async function Configuration({
         </p>
         <h2 className="mt-1 font-display text-3xl">{studio.name}</h2>
       </div>
-      <section className="bg-paper p-6"><h2 className="font-display text-2xl">Studio gallery · {studio.name}</h2><p className="mt-2 text-sm text-black/50">Upload several photos so clients can tour the studio before booking.</p><ActionForm action={addStudioImages} successMessage="Studio images uploaded." className="mt-5 flex flex-wrap items-end gap-4"><input type="hidden" name="studio_id" value={studio.id}/><label className="min-w-64 flex-1 text-sm"><span className="mb-2 block">Studio images</span><input name="images" type="file" multiple required accept="image/jpeg,image/png,image/webp,image/gif" className="w-full border border-black/15 bg-white p-3"/></label><SaveButton label="Upload images"/></ActionForm><div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{images?.map((image:any)=><article key={image.id} className="group relative overflow-hidden bg-black/5"><img src={image.image_url} alt={image.alt_text||studio.name} className="aspect-video w-full object-cover transition duration-300 group-hover:scale-105"/><ActionForm action={deleteStudioImage} successMessage="Studio image deleted." className="absolute right-2 top-2"><input type="hidden" name="id" value={image.id}/><button className="bg-black px-3 py-2 text-xs text-white">Delete</button></ActionForm></article>)}</div></section>
+      <section className="bg-paper p-6">
+        <h2 className="font-display text-2xl">
+          Studio gallery · {studio.name}
+        </h2>
+        <p className="mt-2 text-sm text-black/50">
+          Upload several photos so clients can tour the studio before booking.
+        </p>
+        <ActionForm
+          action={addStudioImages}
+          successMessage="Studio images uploaded."
+          className="mt-5 flex flex-wrap items-end gap-4"
+        >
+          <input type="hidden" name="studio_id" value={studio.id} />
+          <label className="min-w-64 flex-1 text-sm">
+            <span className="mb-2 block">Studio images</span>
+            <input
+              name="images"
+              type="file"
+              multiple
+              required
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="w-full border border-black/15 bg-white p-3"
+            />
+          </label>
+          <SaveButton label="Upload images" />
+        </ActionForm>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {images?.map((image: any) => (
+            <article
+              key={image.id}
+              className="group relative overflow-hidden bg-black/5"
+            >
+              <img
+                src={image.image_url}
+                alt={image.alt_text || studio.name}
+                className="aspect-video w-full object-cover transition duration-300 group-hover:scale-105"
+              />
+              <ActionForm
+                action={deleteStudioImage}
+                successMessage="Studio image deleted."
+                className="absolute right-2 top-2"
+              >
+                <input type="hidden" name="id" value={image.id} />
+                <button className="bg-black px-3 py-2 text-xs text-white">
+                  Delete
+                </button>
+              </ActionForm>
+            </article>
+          ))}
+        </div>
+      </section>
       <section className="bg-paper p-6">
         <h2 className="font-display text-2xl">
           Operating hours · {studio.name}
@@ -214,19 +274,20 @@ async function Configuration({
             <TextArea name="internal_notes" label="Internal notes" />
             <SaveButton label="Block period" />
           </ActionForm>
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-3">
             {blocks?.map((block: any) => (
-              <p
-                key={block.id}
-                className="border-t border-black/10 p-2 text-sm transition hover:bg-white"
-              >
-                <strong>{block.reason}</strong>
-                <br />
-                <span className="text-black/50">
-                  {new Date(block.starts_at).toLocaleString()} –{" "}
-                  {new Date(block.ends_at).toLocaleString()}
-                </span>
-              </p>
+              <details key={block.id} className="border-t border-black/10 p-3 text-sm transition hover:bg-white">
+                <summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-4"><span><strong className="block">{block.reason}</strong><span className="text-black/50">{new Date(block.starts_at).toLocaleString()} – {new Date(block.ends_at).toLocaleString()}</span></span><span className="text-xs uppercase tracking-[.14em] text-gold">Edit</span></span></summary>
+                <ActionForm action={updateBlockedPeriod} successMessage="Blocked period updated." className="mt-4 grid gap-3 border-t border-black/10 pt-4">
+                  <input type="hidden" name="id" value={block.id} />
+                  <input type="hidden" name="studio_id" value={studio.id} />
+                  <TextField name="starts_at" label="Starts" type="datetime-local" value={new Date(block.starts_at).toISOString().slice(0,16)} required />
+                  <TextField name="ends_at" label="Ends" type="datetime-local" value={new Date(block.ends_at).toISOString().slice(0,16)} required />
+                  <TextField name="reason" label="Reason" value={block.reason} required />
+                  <TextArea name="internal_notes" label="Internal notes" value={block.internal_notes} />
+                  <SaveButton label="Save blocked period" />
+                </ActionForm>
+              </details>
             ))}
           </div>
         </section>
@@ -278,7 +339,10 @@ async function Configuration({
             </label>
             <SaveButton label="Add pricing rule" />
           </ActionForm>
-          <PricingRulesManager rules={prices||[]} currency={studio.currency}/>
+          <PricingRulesManager
+            rules={prices || []}
+            currency={studio.currency}
+          />
         </section>
       </div>
     </div>

@@ -10,7 +10,9 @@ export function ActionForm({
   className,
   children,
 }: {
-  action: (data: FormData) => Promise<void | { redirectTo: string }>;
+  action: (
+    data: FormData,
+  ) => Promise<void | { redirectTo: string } | { error: string }>;
   successMessage: string;
   className?: string;
   children: React.ReactNode;
@@ -22,13 +24,23 @@ export function ActionForm({
     setNotice(null);
     try {
       const result = await action(data);
+      if (result && "error" in result) {
+        setNotice({ kind: "error", message: result.error });
+        return;
+      }
       if (result && "redirectTo" in result) {
         window.location.assign(result.redirectTo);
         return;
       }
       setNotice({ kind: "success", message: successMessage });
     } catch (error) {
-      if(typeof error==="object"&&error!==null&&"digest" in error&&String(error.digest).startsWith("NEXT_REDIRECT"))throw error;
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "digest" in error &&
+        String(error.digest).startsWith("NEXT_REDIRECT")
+      )
+        throw error;
       setNotice({
         kind: "error",
         message:
@@ -50,7 +62,9 @@ export function ActionForm({
           </p>
         )}
       </form>
-      {notice && <NotificationDialog kind={notice.kind} message={notice.message} />}
+      {notice && (
+        <NotificationDialog kind={notice.kind} message={notice.message} />
+      )}
     </>
   );
 }
