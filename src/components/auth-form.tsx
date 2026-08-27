@@ -2,5 +2,64 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import type { AuthState } from "@/app/(auth)/actions";
-export function AuthForm({ mode, action }: { mode: "login" | "register"; action: (state: AuthState, data: FormData) => Promise<AuthState> }) { const [state, formAction, pending] = useActionState(action, {}); const register = mode === "register"; return <form action={formAction} className="mt-10 space-y-5">{register && <div className="grid grid-cols-2 gap-4"><Field name="firstName" label="First name"/><Field name="lastName" label="Last name"/></div>}<Field name="email" label="Email" type="email"/><Field name="password" label="Password" type="password"/>{state.error && <p role="alert" className="text-sm text-red-700">{state.error}</p>}<button disabled={pending} className="w-full bg-ink px-5 py-4 text-sm uppercase tracking-[.2em] text-paper disabled:opacity-50">{pending ? "Please wait…" : register ? "Create account" : "Sign in"}</button><p className="text-center text-sm text-black/55">{register ? "Already a client?" : "New to Studio Two?"} <Link className="text-ink underline" href={register ? "/login" : "/register"}>{register ? "Sign in" : "Create account"}</Link></p></form>; }
-function Field({ name, label, type = "text" }: { name: string; label: string; type?: string }) { return <label className="block text-sm"><span className="mb-2 block">{label}</span><input required name={name} type={type} minLength={type === "password" ? 8 : undefined} className="w-full border border-black/20 bg-transparent px-4 py-3 outline-none focus:border-gold"/></label>; }
+import { NotificationDialog } from "@/components/notification-dialog";
+export function AuthForm({
+  mode,
+  action,
+}: {
+  mode: "login" | "register";
+  action: (state: AuthState, data: FormData) => Promise<AuthState>;
+}) {
+  const [state, formAction, pending] = useActionState(action, {});
+  const register = mode === "register";
+  return (
+    <form action={formAction} className="mt-10 space-y-5">
+      {register && (
+        <div className="grid grid-cols-2 gap-4">
+          <Field name="firstName" label="First name" />
+          <Field name="lastName" label="Last name" />
+        </div>
+      )}
+      <Field name="email" label="Email" type="email" />
+      <Field name="password" label="Password" type="password" />
+      {state.error && <NotificationDialog kind="error" message={state.error} />}
+      <button
+        disabled={pending}
+        className="w-full bg-ink px-5 py-4 text-sm uppercase tracking-[.2em] text-paper disabled:opacity-50"
+      >
+        {pending ? "Please wait…" : register ? "Create account" : "Sign in"}
+      </button>
+      <p className="text-center text-sm text-black/55">
+        {register ? "Already a client?" : "New to Studio Two?"}{" "}
+        <Link
+          className="text-ink underline"
+          href={register ? "/login" : "/register"}
+        >
+          {register ? "Sign in" : "Create account"}
+        </Link>
+      </p>
+    </form>
+  );
+}
+function Field({
+  name,
+  label,
+  type = "text",
+}: {
+  name: string;
+  label: string;
+  type?: string;
+}) {
+  return (
+    <label className="block text-sm">
+      <span className="mb-2 block">{label}</span>
+      <input
+        required
+        name={name}
+        type={type}
+        minLength={type === "password" ? 8 : undefined}
+        className="w-full border border-black/20 bg-transparent px-4 py-3 outline-none focus:border-gold"
+      />
+    </label>
+  );
+}

@@ -1,2 +1,83 @@
-import {requireAdmin} from "@/lib/auth";import {saveFaq} from "../content-actions";import {CollectionHeader,SaveButton,StatusField,TextArea,TextField} from "@/components/admin-form-fields";
-export default async function FaqAdmin(){const{supabase}=await requireAdmin();const{data,error}=await supabase.from("faqs").select("*").order("sort_order");if(error)throw new Error(error.message);return <><CollectionHeader eyebrow="Website" title="FAQs" description="Create, order, draft, and publish common questions."/><form action={saveFaq} className="mt-8 grid gap-4 bg-paper p-6"><h2 className="font-display text-2xl">Add FAQ</h2><input type="hidden" name="id" value=""/><TextField name="question" label="Question" required/><TextArea name="answer" label="Answer" rows={5}/><div className="grid gap-4 sm:grid-cols-3"><TextField name="category" label="Category" value="General" required/><TextField name="sort_order" label="Sort order" type="number" value={0}/><StatusField/></div><SaveButton label="Add FAQ"/></form><div className="mt-8 space-y-4">{data?.map(item=><form action={saveFaq} key={item.id} className="grid gap-4 bg-paper p-6"><input type="hidden" name="id" value={item.id}/><TextField name="question" label="Question" value={item.question} required/><TextArea name="answer" label="Answer" value={item.answer}/><div className="grid gap-4 sm:grid-cols-3"><TextField name="category" label="Category" value={item.category}/><TextField name="sort_order" label="Sort order" type="number" value={item.sort_order}/><StatusField value={item.status}/></div><SaveButton/></form>)}</div></>}
+import { requireAdmin } from "@/lib/auth";
+import { saveFaq } from "../content-actions";
+import { ActionForm } from "@/components/action-form";
+import {
+  CollectionHeader,
+  SaveButton,
+  StatusField,
+  TextArea,
+  TextField,
+} from "@/components/admin-form-fields";
+export default async function FaqAdmin() {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from("faqs")
+    .select("*")
+    .order("sort_order");
+  if (error) throw new Error(error.message);
+  return (
+    <>
+      <CollectionHeader
+        eyebrow="Website"
+        title="FAQs"
+        description="Create, order, draft, and publish common questions."
+      />
+      <ActionForm action={saveFaq} successMessage="FAQ added." className="mt-8 grid gap-4 bg-paper p-6">
+        <h2 className="font-display text-2xl">Add FAQ</h2>
+        <input type="hidden" name="id" value="" />
+        <TextField name="question" label="Question" required />
+        <TextArea name="answer" label="Answer" rows={5} />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <TextField
+            name="category"
+            label="Category"
+            value="General"
+            required
+          />
+          <TextField
+            name="sort_order"
+            label="Sort order"
+            type="number"
+            value={0}
+          />
+          <StatusField />
+        </div>
+        <SaveButton label="Add FAQ" />
+      </ActionForm>
+      <div className="mt-8 space-y-4">
+        {data?.map((item) => (
+          <ActionForm
+            action={saveFaq}
+            successMessage="FAQ saved."
+            key={item.id}
+            className="grid gap-4 bg-paper p-6"
+          >
+            <input type="hidden" name="id" value={item.id} />
+            <TextField
+              name="question"
+              label="Question"
+              value={item.question}
+              required
+            />
+            <TextArea name="answer" label="Answer" value={item.answer} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <TextField
+                name="category"
+                label="Category"
+                value={item.category}
+              />
+              <TextField
+                name="sort_order"
+                label="Sort order"
+                type="number"
+                value={item.sort_order}
+              />
+              <StatusField value={item.status} />
+            </div>
+            <SaveButton />
+          </ActionForm>
+        ))}
+      </div>
+    </>
+  );
+}

@@ -1,2 +1,65 @@
-import{requireAdmin}from"@/lib/auth";import{CollectionHeader,SaveButton,TextArea,TextField}from"@/components/admin-form-fields";import{EquipmentManager}from"@/components/equipment-manager";import{saveCategory}from"./actions";
-export default async function Page(){const{supabase}=await requireAdmin();const[{data:categories,error},{data:items}]=await Promise.all([supabase.from("equipment_categories").select("*").order("sort_order"),supabase.from("equipment").select("*,equipment_categories(name)").order("name")]);if(error)throw new Error(error.message);return <><CollectionHeader eyebrow="Operations" title="Equipment" description="View the inventory in a table and edit individual items in a focused modal."/><details className="mt-8 bg-paper p-6"><summary className="cursor-pointer font-display text-2xl">Add equipment category</summary><form action={saveCategory} className="mt-5 grid gap-4 sm:grid-cols-2"><input type="hidden" name="id" value=""/><TextField name="name" label="Name" required/><TextField name="slug" label="Slug" required/><div className="sm:col-span-2"><TextArea name="description" label="Description"/></div><TextField name="sort_order" label="Sort order" type="number" value={0}/><label className="pt-8 text-sm"><input type="checkbox" name="active" defaultChecked className="mr-2"/>Active</label><div className="sm:col-span-2"><SaveButton label="Add category"/></div></form></details><EquipmentManager items={items||[]} categories={(categories||[]).map(x=>({id:x.id,name:x.name}))}/></>}
+import { requireAdmin } from "@/lib/auth";
+import {
+  CollectionHeader,
+  SaveButton,
+  TextArea,
+  TextField,
+} from "@/components/admin-form-fields";
+import { EquipmentManager } from "@/components/equipment-manager";
+import { ActionForm } from "@/components/action-form";
+import { saveCategory } from "./actions";
+export default async function Page() {
+  const { supabase } = await requireAdmin();
+  const [{ data: categories, error }, { data: items }] = await Promise.all([
+    supabase.from("equipment_categories").select("*").order("sort_order"),
+    supabase
+      .from("equipment")
+      .select("*,equipment_categories(name)")
+      .order("name"),
+  ]);
+  if (error) throw new Error(error.message);
+  return (
+    <>
+      <CollectionHeader
+        eyebrow="Operations"
+        title="Equipment"
+        description="View the inventory in a table and edit individual items in a focused modal."
+      />
+      <details className="mt-8 bg-paper p-6">
+        <summary className="cursor-pointer font-display text-2xl">
+          Add equipment category
+        </summary>
+        <ActionForm action={saveCategory} successMessage="Equipment category added." className="mt-5 grid gap-4 sm:grid-cols-2">
+          <input type="hidden" name="id" value="" />
+          <TextField name="name" label="Name" required />
+          <TextField name="slug" label="Slug" required />
+          <div className="sm:col-span-2">
+            <TextArea name="description" label="Description" />
+          </div>
+          <TextField
+            name="sort_order"
+            label="Sort order"
+            type="number"
+            value={0}
+          />
+          <label className="pt-8 text-sm">
+            <input
+              type="checkbox"
+              name="active"
+              defaultChecked
+              className="mr-2"
+            />
+            Active
+          </label>
+          <div className="sm:col-span-2">
+            <SaveButton label="Add category" />
+          </div>
+        </ActionForm>
+      </details>
+      <EquipmentManager
+        items={items || []}
+        categories={(categories || []).map((x) => ({ id: x.id, name: x.name }))}
+      />
+    </>
+  );
+}

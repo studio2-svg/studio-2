@@ -2,6 +2,7 @@
 import { useActionState } from "react";
 import { savePage, type CmsActionState } from "@/app/admin/website/actions";
 import type { CmsPage } from "@/lib/cms";
+import { NotificationDialog } from "@/components/notification-dialog";
 export function CmsPageForm({ page }: { page: CmsPage }) {
   const [state, action, pending] = useActionState<CmsActionState, FormData>(
     savePage,
@@ -58,16 +59,8 @@ export function CmsPageForm({ page }: { page: CmsPage }) {
           </select>
         </label>
       </section>
-      {state.error && (
-        <p role="alert" className="text-sm text-red-700">
-          {state.error}
-        </p>
-      )}
-      {state.success && (
-        <p role="status" className="text-sm text-green-800">
-          {state.success}
-        </p>
-      )}
+      {state.error && <NotificationDialog kind="error" message={state.error} />}
+      {state.success && <NotificationDialog kind="success" message={state.success} />}
       <div className="flex flex-wrap gap-3">
         <Button value="draft" disabled={pending}>
           Save draft

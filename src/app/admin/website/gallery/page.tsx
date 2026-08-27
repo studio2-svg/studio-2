@@ -1,6 +1,102 @@
 import { requireAdmin } from "@/lib/auth";
 import { saveGalleryItem } from "../content-actions";
-import { CollectionHeader, SaveButton, StatusField, TextArea, TextField } from "@/components/admin-form-fields";
-const blank={id:"",title:"",description:"",media_url:"",media_type:"image",category:"Studio",featured:false,sort_order:0,status:"draft"};
-export default async function GalleryAdmin(){const{supabase}=await requireAdmin();const{data,error}=await supabase.from("gallery_items").select("*").order("sort_order");if(error)throw new Error(error.message);return <><CollectionHeader eyebrow="Website" title="Gallery" description="Upload and curate photography for the public gallery."/><GalleryForm item={blank} create/><div className="mt-8 space-y-4">{data?.map(item=><GalleryForm key={item.id} item={item}/>)}</div></>}
-function GalleryForm({item,create=false}:{item:typeof blank;create?:boolean}){return <form action={saveGalleryItem} className="mt-8 grid gap-4 bg-paper p-6"><h2 className="font-display text-2xl">{create?"Add gallery image":item.title}</h2><input type="hidden" name="id" value={item.id}/><input type="hidden" name="current_media_url" value={item.media_url||""}/><input type="hidden" name="media_type" value="image"/><TextField name="title" label="Title" value={item.title} required/><TextArea name="description" label="Description" value={item.description}/><label className="text-sm"><span className="mb-2 block">Image file</span><input type="file" name="image" required={create} accept="image/jpeg,image/png,image/webp,image/gif" className="w-full border border-black/15 bg-white px-3 py-2.5"/></label><div className="grid gap-4 sm:grid-cols-3"><TextField name="category" label="Category" value={item.category}/><TextField name="sort_order" label="Sort order" type="number" value={item.sort_order}/><StatusField value={item.status}/></div><label className="text-sm"><input type="checkbox" name="featured" defaultChecked={item.featured} className="mr-2"/>Featured</label><SaveButton label={create?"Add image":"Save"}/></form>}
+import { ActionForm } from "@/components/action-form";
+import {
+  CollectionHeader,
+  SaveButton,
+  StatusField,
+  TextArea,
+  TextField,
+} from "@/components/admin-form-fields";
+const blank = {
+  id: "",
+  title: "",
+  description: "",
+  media_url: "",
+  media_type: "image",
+  category: "Studio",
+  featured: false,
+  sort_order: 0,
+  status: "draft",
+};
+export default async function GalleryAdmin() {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from("gallery_items")
+    .select("*")
+    .order("sort_order");
+  if (error) throw new Error(error.message);
+  return (
+    <>
+      <CollectionHeader
+        eyebrow="Website"
+        title="Gallery"
+        description="Upload and curate photography for the public gallery."
+      />
+      <GalleryForm item={blank} create />
+      <div className="mt-8 space-y-4">
+        {data?.map((item) => (
+          <GalleryForm key={item.id} item={item} />
+        ))}
+      </div>
+    </>
+  );
+}
+function GalleryForm({
+  item,
+  create = false,
+}: {
+  item: typeof blank;
+  create?: boolean;
+}) {
+  return (
+    <ActionForm action={saveGalleryItem} successMessage={create?"Gallery image added.":"Gallery image saved."} className="mt-8 grid gap-4 bg-paper p-6">
+      <h2 className="font-display text-2xl">
+        {create ? "Add gallery image" : item.title}
+      </h2>
+      <input type="hidden" name="id" value={item.id} />
+      <input
+        type="hidden"
+        name="current_media_url"
+        value={item.media_url || ""}
+      />
+      <input type="hidden" name="media_type" value="image" />
+      <TextField name="title" label="Title" value={item.title} required />
+      <TextArea
+        name="description"
+        label="Description"
+        value={item.description}
+      />
+      <label className="text-sm">
+        <span className="mb-2 block">Image file</span>
+        <input
+          type="file"
+          name="image"
+          required={create}
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="w-full border border-black/15 bg-white px-3 py-2.5"
+        />
+      </label>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <TextField name="category" label="Category" value={item.category} />
+        <TextField
+          name="sort_order"
+          label="Sort order"
+          type="number"
+          value={item.sort_order}
+        />
+        <StatusField value={item.status} />
+      </div>
+      <label className="text-sm">
+        <input
+          type="checkbox"
+          name="featured"
+          defaultChecked={item.featured}
+          className="mr-2"
+        />
+        Featured
+      </label>
+      <SaveButton label={create ? "Add image" : "Save"} />
+    </ActionForm>
+  );
+}

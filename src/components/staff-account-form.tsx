@@ -1,4 +1,96 @@
-"use client";import{useActionState}from"react";import{createStaffAccount}from"@/app/admin/staff-accounts/actions";
-const permissions=[["studio","Studio"],["bookings","Bookings"],["calendar","Calendar"],["customers","Customers"],["equipment","Equipment"],["staff","Staff"],["services","Services"],["payments","Payments"],["invoices","Invoices"],["website","Website CMS"],["analytics","Analytics"]];
-export function StaffAccountForm(){const[state,action,pending]=useActionState(createStaffAccount,{});return <form action={action} className="mt-6 grid gap-4 sm:grid-cols-2"><Field name="firstName" label="First name"/><Field name="lastName" label="Last name"/><Field name="email" label="Work email" type="email"/><Field name="password" label="Temporary password" type="password" minLength={12}/><label className="text-sm sm:col-span-2"><span className="mb-2 block">Access level</span><select name="role" className="w-full border border-black/15 bg-white px-3 py-3"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Administrator</option></select></label><fieldset className="sm:col-span-2"><legend className="mb-3 text-sm">Module permissions</legend><div className="grid gap-3 sm:grid-cols-2">{permissions.map(([value,label])=><label key={value} className="border border-black/10 bg-white p-3 text-sm"><input type="checkbox" name="permissions" value={value} className="mr-2"/>{label}</label>)}</div></fieldset>{state.error&&<p className="text-sm text-red-700 sm:col-span-2">{state.error}</p>}{state.success&&<p className="text-sm text-green-800 sm:col-span-2">{state.success}</p>}<button disabled={pending} className="bg-ink px-5 py-4 text-sm text-paper disabled:opacity-50 sm:col-span-2">{pending?"Creating account...":"Create staff login"}</button></form>}
-function Field({name,label,type="text",minLength}:{name:string;label:string;type?:string;minLength?:number}){return <label className="text-sm"><span className="mb-2 block">{label}</span><input required name={name} type={type} minLength={minLength} autoComplete="off" className="w-full border border-black/15 bg-white px-3 py-3"/></label>}
+"use client";
+import { useActionState } from "react";
+import { createStaffAccount } from "@/app/admin/staff-accounts/actions";
+import { NotificationDialog } from "@/components/notification-dialog";
+const permissions = [
+  ["studio", "Studio"],
+  ["bookings", "Bookings"],
+  ["calendar", "Calendar"],
+  ["customers", "Customers"],
+  ["equipment", "Equipment"],
+  ["staff", "Staff"],
+  ["services", "Services"],
+  ["payments", "Payments"],
+  ["invoices", "Invoices"],
+  ["website", "Website CMS"],
+  ["analytics", "Analytics"],
+];
+export function StaffAccountForm() {
+  const [state, action, pending] = useActionState(createStaffAccount, {});
+  return (
+    <form action={action} className="mt-6 grid gap-4 sm:grid-cols-2">
+      <Field name="firstName" label="First name" />
+      <Field name="lastName" label="Last name" />
+      <Field name="email" label="Work email" type="email" />
+      <Field
+        name="password"
+        label="Temporary password"
+        type="password"
+        minLength={12}
+      />
+      <label className="text-sm sm:col-span-2">
+        <span className="mb-2 block">Access level</span>
+        <select
+          name="role"
+          className="w-full border border-black/15 bg-white px-3 py-3"
+        >
+          <option value="staff">Staff</option>
+          <option value="manager">Manager</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </label>
+      <fieldset className="sm:col-span-2">
+        <legend className="mb-3 text-sm">Module permissions</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {permissions.map(([value, label]) => (
+            <label
+              key={value}
+              className="border border-black/10 bg-white p-3 text-sm"
+            >
+              <input
+                type="checkbox"
+                name="permissions"
+                value={value}
+                className="mr-2"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {state.error && <NotificationDialog kind="error" message={state.error} />}
+      {state.success && <NotificationDialog kind="success" message={state.success} />}
+      <button
+        disabled={pending}
+        className="bg-ink px-5 py-4 text-sm text-paper disabled:opacity-50 sm:col-span-2"
+      >
+        {pending ? "Creating account..." : "Create staff login"}
+      </button>
+    </form>
+  );
+}
+function Field({
+  name,
+  label,
+  type = "text",
+  minLength,
+}: {
+  name: string;
+  label: string;
+  type?: string;
+  minLength?: number;
+}) {
+  return (
+    <label className="text-sm">
+      <span className="mb-2 block">{label}</span>
+      <input
+        required
+        name={name}
+        type={type}
+        minLength={minLength}
+        autoComplete="off"
+        className="w-full border border-black/15 bg-white px-3 py-3"
+      />
+    </label>
+  );
+}

@@ -14,16 +14,18 @@ export async function saveCategory(form: FormData) {
     .object({
       id: optionalId,
       name: text(100).min(1),
-      slug: z.string().regex(/^[a-z0-9-]+$/),
+      slug: text(120),
       description: text(1000),
       sort_order: z.coerce.number().int(),
       active: z.string().optional(),
     })
     .parse(Object.fromEntries(form));
   const { supabase } = await requireAdmin();
+  const slug=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(!slug)throw new Error("Enter a valid category name or slug.");
   const values = {
     name: v.name,
-    slug: v.slug,
+    slug,
     description: v.description || null,
     sort_order: v.sort_order,
     active: v.active === "on",

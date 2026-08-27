@@ -1,2 +1,78 @@
-import { EmptyPanel, PortalHeader } from "@/components/portal-page";
-export default function Page(){return <><PortalHeader eyebrow="Operations" title="Bookings" description="Review and manage studio booking requests."/><EmptyPanel title="No bookings yet" message="New bookings will appear here once clients complete the booking flow."/></>}
+import { requireAdmin } from "@/lib/auth";
+import { PortalHeader } from "@/components/portal-page";
+function related<T>(value:T|T[]|null){return Array.isArray(value)?value[0]:value}
+export default async function Page() {
+  const { supabase } = await requireAdmin();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      "id,starts_at,ends_at,status,estimated_amount_minor,studios(name,currency),profiles(first_name,last_name,email),booking_purposes(name)",
+    )
+    .order("starts_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (
+    <>
+      <PortalHeader
+        eyebrow="Operations"
+        title="Bookings"
+        description="Review studio booking requests submitted by clients."
+      />
+      <div className="mt-8 overflow-x-auto border border-black/10 bg-paper">
+        <table className="w-full min-w-[54rem] text-left text-sm">
+          <thead className="border-b border-black/10 text-black/45">
+            <tr>
+              <th className="p-4">Client</th>
+              <th className="p-4">Studio</th>
+              <th className="p-4">Date and time</th>
+              <th className="p-4">Purpose</th>
+              <th className="p-4">Estimate</th>
+              <th className="p-4">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data?.length ? (
+            data.map((item) => (
+                <tr
+                  key={item.id}
+                  className="border-b border-black/10 transition hover:bg-white"
+                >
+                  <td className="p-4">
+                    <strong>
+                  {related(item.profiles)?.first_name} {related(item.profiles)?.last_name}
+                    </strong>
+                    <br />
+                    <span className="text-black/45">
+                  {related(item.profiles)?.email}
+                    </span>
+                  </td>
+              <td className="p-4">{related(item.studios)?.name}</td>
+                  <td className="p-4">
+                    {new Date(item.starts_at).toLocaleString()}
+                    <br />
+                    <span className="text-black/45">
+                      to {new Date(item.ends_at).toLocaleString()}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                {related(item.booking_purposes)?.name || "General"}
+                  </td>
+                  <td className="p-4">
+                {related(item.studios)?.currency}{" "}
+                    {(item.estimated_amount_minor / 100).toFixed(2)}
+                  </td>
+                  <td className="p-4 capitalize">{item.status}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="p-8 text-center text-black/50">
+                  No booking requests yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
