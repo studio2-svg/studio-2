@@ -42,7 +42,7 @@ export async function saveEquipment(form: FormData) {
       id: optionalId,
       category_id: z.union([z.literal(""), z.uuid()]),
       name: text(160).min(1),
-      slug: z.string().regex(/^[a-z0-9-]+$/),
+      slug: text(160),
       description: text(3000),
       specifications: text(5000),
       current_image_url: z.string(),
@@ -54,11 +54,15 @@ export async function saveEquipment(form: FormData) {
     })
     .parse(Object.fromEntries(form));
   const { supabase, user } = await requireAdmin();
+  const baseSlug=(v.slug||v.name).toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(!baseSlug)throw new Error("Enter a valid equipment name.");
+  let slug=baseSlug,suffix=2;
+  while(true){let query=supabase.from("equipment").select("id").eq("slug",slug).limit(1);if(v.id)query=query.neq("id",v.id);const{data}=await query;if(!data?.length)break;slug=`${baseSlug}-${suffix++}`}
   const image_url=await uploadImage(supabase,user.id,form.get("image"),v.current_image_url);
   const values = {
     category_id: v.category_id || null,
     name: v.name,
-    slug: v.slug,
+    slug,
     description: v.description || null,
     specifications: v.specifications || null,
     image_url,

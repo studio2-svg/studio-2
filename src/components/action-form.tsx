@@ -24,6 +24,7 @@ export function ActionForm({
       await action(data);
       setNotice({ kind: "success", message: successMessage });
     } catch (error) {
+      if(typeof error==="object"&&error!==null&&"digest" in error&&String(error.digest).startsWith("NEXT_REDIRECT"))throw error;
       setNotice({
         kind: "error",
         message:
@@ -41,7 +42,7 @@ export function ActionForm({
         {children}
         {pending && (
           <p className="flex items-center gap-2 text-sm text-black/50">
-            <LoaderCircle className="animate-spin" size={16} /> Saving...
+            <LoaderCircle className="animate-spin" size={16} /> Working…
           </p>
         )}
       </form>

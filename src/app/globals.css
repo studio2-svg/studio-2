@@ -13,4 +13,8 @@ html { background: var(--ink); }
 body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-geist-sans), sans-serif; }
 a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
+:where(button, a).bg-ink, :where(button, a).bg-black { color: var(--paper); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button:not(:disabled), a { cursor: pointer; }
+button:active, a:active { transform: scale(.98); }
 ::selection { background: var(--gold); color: var(--ink); }
