@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPublicCollection } from "@/lib/cms";
 import { PublicMobileMenu } from "@/components/public-mobile-menu";
+import { SiteLogo } from "@/components/site-logo";
 type NavItem = {
   id: string;
   label: string;
@@ -27,9 +28,9 @@ export async function PublicNav({ dark = false }: { dark?: boolean }) {
     >
       <Link
         href="/"
-        className="font-display text-xl font-semibold tracking-[.18em]"
+        aria-label="Studio 2 home"
       >
-        STUDIO TWO
+        <SiteLogo tone={dark ? "gold" : "black"} />
       </Link>
       <div className="hidden items-center gap-5 text-sm md:flex">
         {links.map((item) => (

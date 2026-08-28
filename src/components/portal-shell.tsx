@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { ChevronLeft, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { logout } from "@/app/(auth)/actions";
+import { SiteLogo } from "@/components/site-logo";
 
 export function PortalShell({
   title,
@@ -53,9 +54,7 @@ export function PortalShell({
             >
               <Menu size={20} />
             </button>
-            <Link href="/" className="font-display text-xl tracking-[.18em]">
-              STUDIO TWO
-            </Link>
+            <Link href="/" aria-label="Studio 2 home"><SiteLogo /></Link>
           </div>
           <form action={logout}>
             <button className="text-sm text-black/60">Sign out</button>
@@ -72,9 +71,7 @@ export function PortalShell({
           />
           <aside className="relative h-full w-[min(19rem,86vw)] overflow-y-auto bg-paper px-6 py-6 shadow-2xl">
             <div className="mb-10 flex items-center justify-between">
-              <span className="font-display text-lg tracking-[.16em]">
-                STUDIO TWO
-              </span>
+              <SiteLogo />
               <button
                 type="button"
                 aria-label="Close navigation"
