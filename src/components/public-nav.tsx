@@ -30,7 +30,7 @@ export async function PublicNav({ dark = false }: { dark?: boolean }) {
         href="/"
         aria-label="Studio 2 home"
       >
-        <SiteLogo tone={dark ? "gold" : "black"} />
+        <SiteLogo tone={dark ? "white" : "black"} />
       </Link>
       <div className="hidden items-center gap-5 text-sm md:flex">
         {links.map((item) => (
