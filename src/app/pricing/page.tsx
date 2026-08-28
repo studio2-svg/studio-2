@@ -8,6 +8,7 @@ type Studio = {
   price_minor: number;
   currency: string;
   active: boolean;
+  pricing_type: string;
 };
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata(await getPublishedPage("pricing"));
@@ -37,7 +38,7 @@ export default async function PricingPage() {
               >
                 <div>
                   <p className="text-xs uppercase tracking-[.18em] text-gold">
-                    Hourly studio rate
+                    {studio.pricing_type} studio rate
                   </p>
                   <h2 className="mt-2 font-display text-3xl">{studio.name}</h2>
                 </div>

@@ -28,9 +28,10 @@ export async function addStudio(form: FormData) {
       currency: z.string().length(3),
       timezone: text(80).min(1),
       price: z.coerce.number().min(0),
+      pricing_type: z.enum(["hourly", "daily", "fixed"]),
     })
     .parse(Object.fromEntries(form));
-  const { supabase } = await permitted();
+  const { supabase, user } = await permitted();
   const slug = await uniqueStudioSlug(supabase, v.slug || v.name);
   const { data, error } = await supabase
     .from("studios")
@@ -40,12 +41,14 @@ export async function addStudio(form: FormData) {
       currency: v.currency.toUpperCase(),
       timezone: v.timezone,
       price_minor: Math.round(v.price * 100),
+      pricing_type: v.pricing_type,
       active: true,
     })
     .select("id")
     .single();
   if (error || !data)
     throw new Error(error?.message || "Studio could not be created.");
+  await uploadStudioImages(supabase, user.id, data.id, form.getAll("images"), true);
   refresh();
 }
 export async function saveStudio(form: FormData) {
@@ -59,19 +62,14 @@ export async function saveStudio(form: FormData) {
       timezone: text(80).min(1),
       currency: z.string().length(3),
       price: z.coerce.number().min(0),
-      current_cover_image_url: z.string(),
+      pricing_type: z.enum(["hourly", "daily", "fixed"]),
       featured: z.string().optional(),
       active: z.string().optional(),
     })
     .parse(Object.fromEntries(form));
   const { supabase, user } = await permitted();
   const slug = await uniqueStudioSlug(supabase, v.slug || v.name, v.id);
-  const cover_image_url = await uploadImage(
-    supabase,
-    user.id,
-    form.get("cover_image"),
-    v.current_cover_image_url,
-  );
+  const cover_image_url = await uploadStudioImages(supabase, user.id, v.id, form.getAll("images"), true);
   const { error } = await supabase
     .from("studios")
     .update({
@@ -82,7 +80,8 @@ export async function saveStudio(form: FormData) {
       timezone: v.timezone,
       currency: v.currency.toUpperCase(),
       price_minor: Math.round(v.price * 100),
-      cover_image_url,
+      pricing_type: v.pricing_type,
+      ...(cover_image_url ? { cover_image_url } : {}),
       featured: v.featured === "on",
       active: v.active === "on",
     })
@@ -287,6 +286,28 @@ export async function addStudioImages(form: FormData) {
   const { error } = await supabase.from("studio_images").insert(rows);
   if (error) throw new Error(error.message);
   refresh();
+}
+
+async function uploadStudioImages(
+  supabase: Awaited<ReturnType<typeof requireAdmin>>["supabase"],
+  userId: string,
+  studioId: string,
+  entries: FormDataEntryValue[],
+  returnCover = false,
+) {
+  const files = entries.filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  if (!files.length) return null;
+  if (files.length > 12) throw new Error("Upload no more than 12 images at once.");
+  const rows: { studio_id: string; image_url: string; alt_text: string }[] = [];
+  for (const file of files) {
+    const image_url = await uploadImage(supabase, userId, file, "");
+    if (image_url) rows.push({ studio_id: studioId, image_url, alt_text: "Studio photo" });
+  }
+  if (rows.length) {
+    const { error } = await supabase.from("studio_images").insert(rows);
+    if (error) throw new Error(error.message);
+  }
+  return returnCover ? rows[0]?.image_url || null : null;
 }
 export async function deleteStudioImage(form: FormData) {
   const imageId = id.parse(form.get("id"));

@@ -16,7 +16,7 @@ export default async function BookPage() {
     await Promise.all([
       supabase
         .from("studios")
-        .select("id,name,currency,description,cover_image_url")
+        .select("id,name,currency,description,cover_image_url,price_minor,pricing_type")
         .eq("active", true)
         .order("name"),
       supabase
@@ -86,6 +86,9 @@ export default async function BookPage() {
                   <strong>{studio.name}</strong>
                   <small className="mt-2 block text-black/50">
                     {studio.description}
+                  </small>
+                  <small className="mt-2 block font-medium">
+                    {studio.currency} {(studio.price_minor / 100).toFixed(2)} · {studio.pricing_type}
                   </small>
                 </span>
               </label>

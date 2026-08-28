@@ -57,7 +57,7 @@ async function createBookingCheckout(form: FormData) {
       .limit(1),
     supabase
       .from("studios")
-      .select("name,currency,price_minor")
+      .select("name,currency,price_minor,pricing_type")
       .eq("id", input.studio_id)
       .single(),
     input.purpose_id
@@ -106,7 +106,9 @@ async function createBookingCheckout(form: FormData) {
         "A selected team member is unavailable at that time. Please choose another person or time.",
       );
   }
-  const studioTotal = Math.round(hours * (studio?.price_minor || 0));
+  const days = Math.max(1, Math.ceil(hours / 24));
+  const studioUnits = studio?.pricing_type === "daily" ? days : studio?.pricing_type === "fixed" ? 1 : Math.ceil(hours);
+  const studioTotal = studioUnits * (studio?.price_minor || 0);
   const equipmentTotal = (selectedEquipment || []).reduce(
     (sum, item) =>
       sum +
@@ -114,7 +116,6 @@ async function createBookingCheckout(form: FormData) {
         (item.pricing_type === "hourly" ? Math.ceil(hours) : 1),
     0,
   );
-  const days = Math.max(1, Math.ceil(hours / 24));
   const staffTotal = (selectedStaff || []).reduce((sum, person) => {
     const units =
       person.pricing_type === "hourly"
@@ -131,7 +132,7 @@ async function createBookingCheckout(form: FormData) {
     const items = [
       {
         label: studio?.name || "Studio session",
-        detail: `${hours.toFixed(1)} hours`,
+        detail: `${studioUnits} ${studio?.pricing_type || "hourly"} unit${studioUnits === 1 ? "" : "s"}`,
         amountMinor: studioTotal,
       },
       ...(selectedEquipment || []).map((item) => ({
