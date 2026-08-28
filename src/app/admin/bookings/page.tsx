@@ -77,7 +77,9 @@ export default async function Page() {
                       <summary className="cursor-pointer list-none border border-ink px-3 py-2">
                         Edit
                       </summary>
-                      <div className="absolute right-0 z-30 mt-2 w-[32rem] max-w-[80vw] bg-paper p-5 text-left shadow-2xl">
+                      <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/60 p-4">
+                        <div className="my-8 w-full max-w-lg bg-paper p-6 text-left shadow-2xl">
+                        <div className="mb-5 flex items-center justify-between"><h2 className="font-display text-3xl">Edit booking</h2><a href="/admin/bookings" className="border border-black/15 px-3 py-2 text-sm">Close</a></div>
                         <ActionForm
                           action={updateBookingOrder}
                           successMessage="Booking updated."
@@ -124,6 +126,7 @@ export default async function Page() {
                           />
                           <SaveButton label="Save booking" />
                         </ActionForm>
+                        </div>
                       </div>
                     </details>
                   </td>
