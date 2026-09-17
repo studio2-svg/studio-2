@@ -34,6 +34,7 @@ export default async function StudioAdmin({
   const { data: studios, error } = await supabase
     .from("studios")
     .select("*")
+    .is("deleted_at", null)
     .order("created_at");
   if (error) throw new Error(error.message);
   const requested = typeof query.studio === "string" ? query.studio : null,

@@ -91,17 +91,26 @@ export async function saveStudio(form: FormData) {
   refresh();
 }
 export async function deleteStudio(form: FormData) {
-  const studioId = id.parse(form.get("id"));
-  const { supabase } = await permitted();
-  const { count, error: countError } = await supabase
-    .from("studios")
-    .select("id", { count: "exact", head: true });
-  if (countError) throw new Error(countError.message);
-  if ((count ?? 0) <= 1)
-    throw new Error("Keep at least one studio in the system.");
-  const { error } = await supabase.from("studios").delete().eq("id", studioId);
-  if (error) throw new Error(error.message);
-  refresh();
+  try {
+    const studioId = id.parse(form.get("id"));
+    const { supabase } = await permitted();
+    const { count, error: countError } = await supabase
+      .from("studios")
+      .select("id", { count: "exact", head: true })
+      .is("deleted_at", null);
+    if (countError) throw new Error(countError.message);
+    if ((count ?? 0) <= 1)
+      return { error: "Keep at least one studio in the system." };
+    const { error } = await supabase
+      .from("studios")
+      .update({ active: false, featured: false, deleted_at: new Date().toISOString() })
+      .eq("id", studioId)
+      .is("deleted_at", null);
+    if (error) throw new Error(error.message);
+    refresh();
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "The studio could not be deleted." };
+  }
 }
 export async function saveHours(form: FormData) {
   const v = z
@@ -335,7 +344,7 @@ async function uniqueStudioSlug(
   let slug = base;
   let suffix = 2;
   while (true) {
-    let query = supabase.from("studios").select("id").eq("slug", slug).limit(1);
+    let query = supabase.from("studios").select("id").eq("slug", slug).is("deleted_at", null).limit(1);
     if (currentId) query = query.neq("id", currentId);
     const { data } = await query;
     if (!data?.length) return slug;

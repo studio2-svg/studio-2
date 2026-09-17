@@ -89,7 +89,7 @@ export function StudiosManager({
                     </button>
                     <ActionForm
                       action={deleteStudio}
-                      successMessage={`${item.name} deleted.`}
+                      successMessage={`${item.name} removed. Historical bookings and invoices were preserved.`}
                       className="inline"
                     >
                       <input type="hidden" name="id" value={item.id} />
