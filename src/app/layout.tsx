@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   description: "A premium creative production studio and booking platform.",
 };
 
+// Public CMS pages are regenerated at most one minute after an external data
+// change, even if an on-demand invalidation is missed.
+export const revalidate = 60;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html

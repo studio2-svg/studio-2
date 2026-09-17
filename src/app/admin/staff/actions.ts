@@ -8,7 +8,7 @@ const text = (n = 500) => z.string().trim().max(n),
 function refresh() {
   revalidatePath("/admin/staff");
   revalidatePath("/team");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 export async function saveStaffCategory(form: FormData) {
   const v = z

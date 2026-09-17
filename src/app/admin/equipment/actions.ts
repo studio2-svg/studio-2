@@ -8,6 +8,7 @@ const optionalId = z.union([z.literal(""), z.uuid()]);
 function refresh() {
   revalidatePath("/admin/equipment");
   revalidatePath("/equipment");
+  revalidatePath("/", "layout");
 }
 export async function saveCategory(form: FormData) {
   const v = z

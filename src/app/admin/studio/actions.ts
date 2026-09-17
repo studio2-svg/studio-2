@@ -10,6 +10,7 @@ function refresh() {
   revalidatePath("/studio");
   revalidatePath("/pricing");
   revalidatePath("/book");
+  revalidatePath("/", "layout");
 }
 async function permitted() {
   const session = await requireAdmin();

@@ -84,7 +84,7 @@ export async function savePage(
     return {
       error: error?.message || "The page was not saved. Please try again.",
     };
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   revalidatePath(`/${input.slug}`);
   revalidatePath(`/admin/website/pages/${input.slug}`);
   return {
@@ -110,6 +110,6 @@ export async function restorePageVersion(formData: FormData) {
     target_version: version,
   });
   if (error) throw new Error(error.message);
-  revalidatePath(`/${slug}`);
+  revalidatePath("/", "layout");
   revalidatePath(`/admin/website/pages/${slug}`);
 }

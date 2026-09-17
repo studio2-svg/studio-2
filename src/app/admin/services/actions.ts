@@ -8,7 +8,7 @@ const optionalId = z.union([z.literal(""), z.uuid()]),
 function refresh() {
   revalidatePath("/admin/services");
   revalidatePath("/services");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 }
 export async function saveService(form: FormData) {
   const v = z
