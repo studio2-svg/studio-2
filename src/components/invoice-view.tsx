@@ -12,8 +12,8 @@ export function InvoiceView({
   backHref: string;
 }) {
   return (
-    <main className="min-h-screen bg-[#ebe7de] px-6 py-12 print:bg-white print:p-0">
-      <div className="mx-auto max-w-3xl bg-paper p-8 print:max-w-none">
+    <main className="invoice-print-root min-h-screen bg-[#ebe7de] px-6 py-12 print:p-0">
+      <div className="invoice-print-card mx-auto max-w-3xl bg-paper p-8 print:max-w-none">
         <div className="flex flex-wrap items-start justify-between gap-5 border-b border-black/15 pb-8">
           <div>
             <p className="text-xs uppercase tracking-[.25em] text-gold">

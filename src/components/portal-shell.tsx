@@ -42,8 +42,8 @@ export function PortalShell({
     </>
   );
   return (
-    <div className="min-h-screen bg-[#ebe7de]">
-      <header className="sticky top-0 z-30 border-b border-black/10 bg-paper">
+    <div className="portal-shell min-h-screen bg-[#ebe7de]">
+      <header className="portal-chrome sticky top-0 z-30 border-b border-black/10 bg-paper">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
@@ -62,7 +62,7 @@ export function PortalShell({
         </div>
       </header>
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="portal-chrome fixed inset-0 z-50 md:hidden">
           <button
             type="button"
             aria-label="Close navigation"
@@ -85,13 +85,13 @@ export function PortalShell({
           </aside>
         </div>
       )}
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 md:grid-cols-[13rem_1fr] md:py-10">
-        <aside className="hidden md:block">{navigation}</aside>
-        <main className="min-w-0">
+      <div className="portal-layout mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 md:grid-cols-[13rem_1fr] md:py-10">
+        <aside className="portal-chrome hidden md:block">{navigation}</aside>
+        <main className="portal-content min-w-0">
           {!isRoot && (
             <Link
               href={backHref}
-              className="mb-6 inline-flex items-center gap-1 text-sm text-black/50 hover:text-ink"
+              className="portal-chrome mb-6 inline-flex items-center gap-1 text-sm text-black/50 hover:text-ink"
             >
               <ChevronLeft size={16} /> Back
             </Link>
