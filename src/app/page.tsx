@@ -9,7 +9,6 @@ import {
   getPublicCollection,
   getPublicData,
   getPublicEquipment,
-  getPublicStaff,
   pageMetadata,
 } from "@/lib/cms";
 type Service = {
@@ -26,14 +25,6 @@ type Equipment = {
   description: string | null;
   image_url: string | null;
   equipment_categories: { name: string } | null;
-};
-type Staff = {
-  id: string;
-  name: string;
-  role_title: string | null;
-  profile_photo_url: string | null;
-  featured: boolean;
-  staff_categories: { name: string } | null;
 };
 type Gallery = {
   id: string;
@@ -54,12 +45,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata(await getPublishedPage("home"));
 }
 export default async function Home() {
-  const [page, services, equipment, team, gallery, testimonials, faqs,studios] =
+  const [page, services, equipment, gallery, testimonials, faqs,studios] =
     await Promise.all([
       getPublishedPage("home"),
       getPublicData<Service>("services"),
       getPublicEquipment<Equipment>(),
-      getPublicStaff<Staff>(),
       getPublicCollection<Gallery>("gallery_items"),
       getPublicCollection<Testimonial>("testimonials"),
       getPublicCollection<Faq>("faqs"),
@@ -168,37 +158,6 @@ export default async function Home() {
               <h3 className="mt-2 font-display text-3xl">{item.name}</h3>
             </article>
           ))}
-        </div>
-      </section>
-      <section className="bg-ink px-6 py-24 text-paper">
-        <div className="mx-auto max-w-7xl">
-          <Heading
-            eyebrow="The production team"
-            title="Specialists, when you need them."
-            href="/team"
-            dark
-          />
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            {team.filter((person) => person.featured).slice(0, 3).map((person) => (
-              <article key={person.id}>
-                {person.profile_photo_url ? (
-                  <div className="aspect-[4/5] overflow-hidden bg-white/5">
-                    <img
-                      src={person.profile_photo_url}
-                      alt={person.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-[4/5] bg-white/5" />
-                )}
-                <p className="mt-4 text-xs uppercase tracking-[.18em] text-gold">
-                  {person.staff_categories?.name || person.role_title}
-                </p>
-                <h3 className="mt-2 font-display text-3xl">{person.name}</h3>
-              </article>
-            ))}
-          </div>
         </div>
       </section>
       {gallery.length > 0 && (
