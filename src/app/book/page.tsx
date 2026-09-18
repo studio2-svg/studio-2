@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { connection } from "next/server";
 import { requireUser } from "@/lib/auth";
@@ -9,6 +8,7 @@ import {
   TextField,
 } from "@/components/admin-form-fields";
 import { createBooking } from "./actions";
+import { StudioBookingPicker } from "@/components/studio-booking-picker";
 export default async function BookPage() {
   await connection();
   const { supabase } = await requireUser();
@@ -61,39 +61,7 @@ export default async function BookPage() {
           successMessage="Booking request submitted. You can now view it in your dashboard."
           className="mt-10 grid gap-5 bg-paper p-6 sm:p-8"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            {studios?.map((studio) => (
-              <label
-                key={studio.id}
-                className="group cursor-pointer overflow-hidden border border-black/10 bg-white transition hover:border-gold hover:shadow-lg"
-              >
-                {studio.cover_image_url && (
-                  <img
-                    src={studio.cover_image_url}
-                    alt={studio.name}
-                    className="aspect-video w-full object-cover transition group-hover:scale-105"
-                  />
-                )}
-                <span className="grid grid-cols-3 gap-1 p-1">{studioImages?.filter(image=>image.studio_id===studio.id).slice(0,6).map(image=><img key={image.id} src={image.image_url} alt={image.alt_text||studio.name} className="aspect-square w-full object-cover"/>)}</span>
-                <span className="block p-4">
-                  <input
-                    type="radio"
-                    name="studio_id"
-                    value={studio.id}
-                    required
-                    className="mr-2"
-                  />
-                  <strong>{studio.name}</strong>
-                  <small className="mt-2 block text-black/50">
-                    {studio.description}
-                  </small>
-                  <small className="mt-2 block font-medium">
-                    {studio.currency} {(studio.price_minor / 100).toFixed(2)} · {studio.pricing_type}
-                  </small>
-                </span>
-              </label>
-            ))}
-          </div>
+          <StudioBookingPicker studios={studios || []} studioImages={studioImages || []} />
           <label className="hidden text-sm">
             <span className="mb-2 block">Studio</span>
             <select
