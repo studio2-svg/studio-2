@@ -74,37 +74,43 @@ async function createBookingCheckout(form: FormData) {
     );
   const hours = (ends.getTime() - starts.getTime()) / 3600000;
   const equipmentIds = z.array(z.uuid()).parse(form.getAll("equipment_ids"));
-  const staffIds = z.array(z.uuid()).parse(form.getAll("staff_ids"));
+  const staffRequests = Array.from(form.entries()).flatMap(([key, value]) => {
+    if (!key.startsWith("staff_category_")) return [];
+    const quantity = z.coerce.number().int().min(0).max(50).parse(value);
+    if (!quantity) return [];
+    return [{ categoryId: z.uuid().parse(key.slice("staff_category_".length)), quantity }];
+  });
   const { data: selectedEquipment } = equipmentIds.length
     ? await supabase
         .from("equipment")
         .select("id,name,price_minor,pricing_type")
         .in("id", equipmentIds)
     : { data: [] };
-  const { data: selectedStaff } = staffIds.length
+  const requestedCategoryIds = staffRequests.map((request) => request.categoryId);
+  const { data: staffCandidates, error: staffReadError } = requestedCategoryIds.length
     ? await supabase
         .from("staff_members")
-        .select("id,name,base_price_minor,pricing_type")
-        .in("id", staffIds)
+        .select("id,category_id,base_price_minor,pricing_type,staff_categories(name)")
+        .in("category_id", requestedCategoryIds)
         .eq("status", "active")
     : { data: [] };
-  if ((selectedStaff?.length || 0) !== staffIds.length)
-    throw new Error(
-      "One or more selected team members are no longer available.",
-    );
-  for (const staffId of staffIds) {
-    const { data: available, error: availabilityError } = await supabase.rpc(
-      "staff_is_available",
-      {
-        target_staff: staffId,
-        target_start: starts.toISOString(),
-        target_end: ends.toISOString(),
-      },
-    );
-    if (availabilityError || !available)
-      throw new Error(
-        "A selected team member is unavailable at that time. Please choose another person or time.",
-      );
+  if (staffReadError) throw new Error(staffReadError.message);
+  type SelectedProfessional = { id: string; category_id: string; category_name: string; base_price_minor: number; pricing_type: string };
+  const selectedStaff: SelectedProfessional[] = [];
+  for (const request of staffRequests) {
+    const candidates = (staffCandidates || []).filter((person) => person.category_id === request.categoryId);
+    const checks = await Promise.all(candidates.map((person) => supabase.rpc("staff_is_available", {
+      target_staff: person.id,
+      target_start: starts.toISOString(),
+      target_end: ends.toISOString(),
+    })));
+    const available = candidates.filter((_, index) => !checks[index].error && checks[index].data);
+    const categoryValue = candidates[0]?.staff_categories;
+    const category = Array.isArray(categoryValue) ? categoryValue[0] : categoryValue;
+    const categoryName = category?.name || "Production professional";
+    if (available.length < request.quantity)
+      throw new Error(`Only ${available.length} ${categoryName} professional${available.length === 1 ? " is" : "s are"} available for that time.`);
+    selectedStaff.push(...available.slice(0, request.quantity).map((person) => ({ id: person.id, category_id: request.categoryId, category_name: categoryName, base_price_minor: person.base_price_minor, pricing_type: person.pricing_type })));
   }
   const days = Math.max(1, Math.ceil(hours / 24));
   const studioUnits = studio?.pricing_type === "daily" ? days : studio?.pricing_type === "fixed" ? 1 : Math.ceil(hours);
@@ -142,17 +148,15 @@ async function createBookingCheckout(form: FormData) {
           item.price_minor *
           (item.pricing_type === "hourly" ? Math.ceil(hours) : 1),
       })),
-      ...(selectedStaff || []).map((person) => {
-        const units =
-          person.pricing_type === "hourly"
-            ? Math.ceil(hours)
-            : person.pricing_type === "daily"
-              ? days
-              : 1;
+      ...staffRequests.map((request) => {
+        const professionals = selectedStaff.filter((person) => person.category_id === request.categoryId);
         return {
-          label: person.name,
-          detail: `Production team · ${person.pricing_type}`,
-          amountMinor: person.base_price_minor * units,
+          label: professionals[0]?.category_name || "Production team",
+          detail: `${request.quantity} professional${request.quantity === 1 ? "" : "s"}`,
+          amountMinor: professionals.reduce((sum, person) => {
+            const units = person.pricing_type === "hourly" ? Math.ceil(hours) : person.pricing_type === "daily" ? days : 1;
+            return sum + person.base_price_minor * units;
+          }, 0),
         };
       }),
     ];

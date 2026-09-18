@@ -12,7 +12,7 @@ import { createBooking } from "./actions";
 export default async function BookPage() {
   await connection();
   const { supabase } = await requireUser();
-  const [{ data: studios }, { data: purposes }, { data: equipment }, { data: studioImages }, { data: staff }] =
+  const [{ data: studios }, { data: purposes }, { data: equipment }, { data: studioImages }, { data: staffCategories }] =
     await Promise.all([
       supabase
         .from("studios")
@@ -31,10 +31,10 @@ export default async function BookPage() {
         .order("name"),
       supabase.from("studio_images").select("id,studio_id,image_url,alt_text").order("sort_order"),
       supabase
-        .from("staff_members")
-        .select("id,name,role_title,profile_photo_url,base_price_minor,pricing_type,staff_categories(name)")
-        .eq("status", "active")
-        .order("featured", { ascending: false })
+        .from("staff_categories")
+        .select("id,name,description,staff_members(id)")
+        .eq("active", true)
+        .order("sort_order")
         .order("name"),
     ]);
   return (
@@ -161,16 +161,20 @@ export default async function BookPage() {
           </fieldset>
           <fieldset>
             <legend className="mb-2 font-display text-2xl">Choose your production team</legend>
-            <p className="mb-4 text-sm text-black/50">Optional team members are checked for availability before checkout.</p>
+            <p className="mb-4 text-sm text-black/50">Choose each profession and the number of professionals you need. Specific team members are assigned automatically based on availability.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              {staff?.map((person) => (
-                <label key={person.id} className="flex cursor-pointer gap-3 border border-black/10 bg-white p-4 transition hover:border-gold hover:shadow-sm">
-                  <input type="checkbox" name="staff_ids" value={person.id} className="mt-1" />
-                  {person.profile_photo_url && <img src={person.profile_photo_url} alt={person.name} className="size-14 rounded-full object-cover" />}
-                  <span><strong className="block">{person.name}</strong><small className="block text-black/50">{person.staff_categories?.[0]?.name || person.role_title || "Production team"}</small><small className="mt-1 block text-black/50">GHS {(person.base_price_minor / 100).toFixed(2)} · {person.pricing_type}</small></span>
-                </label>
-              ))}
-              {!staff?.length && <p className="text-sm text-black/50">No team members are currently available.</p>}
+              {staffCategories?.map((category) => {
+                const available = category.staff_members?.length || 0;
+                return <label key={category.id} className="border border-black/10 bg-white p-4 transition hover:border-gold hover:shadow-sm">
+                  <strong className="block">{category.name}</strong>
+                  {category.description && <small className="mt-1 block text-black/50">{category.description}</small>}
+                  <span className="mt-3 flex items-center justify-between gap-4">
+                    <small className="text-black/50">{available} professional{available === 1 ? "" : "s"} available</small>
+                    <span className="flex items-center gap-2 text-sm"><span>Quantity</span><input type="number" name={`staff_category_${category.id}`} min={0} max={available} defaultValue={0} disabled={!available} className="w-20 border border-black/15 px-3 py-2" /></span>
+                  </span>
+                </label>;
+              })}
+              {!staffCategories?.length && <p className="text-sm text-black/50">No production professions are currently available.</p>}
             </div>
           </fieldset>
           <SaveButton label="Proceed to secure checkout" />
