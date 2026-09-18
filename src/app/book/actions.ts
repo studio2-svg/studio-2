@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { initializePaystack, paystackSecret } from "@/lib/paystack";
+import { sendBookingNotification } from "@/lib/booking-notification";
 const schema = z.object({
   studio_id: z.uuid(),
   purpose_id: z.union([z.literal(""), z.uuid()]),
@@ -225,6 +226,20 @@ async function createBookingCheckout(form: FormData) {
     amount_minor: total,
   });
   if (paymentError) throw new Error(paymentError.message);
+  try {
+    await sendBookingNotification({
+      bookingId: booking.id,
+      customerId: user.id,
+      studioName: studio?.name || "Studio session",
+      productionType: purpose?.name || "General production",
+      startsAt: starts,
+      endsAt: ends,
+      currency: studio?.currency || "GHS",
+      totalMinor: total,
+    });
+  } catch (notificationError) {
+    console.error("Booking notification email could not be sent.", notificationError);
+  }
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
   revalidatePath("/admin/bookings");
